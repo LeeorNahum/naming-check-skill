@@ -1,8 +1,8 @@
 ---
-name: naming-check
-description: Evaluate a proposed name (brand, product, company, app, domain) for conflicts, risks, and quality. Use when the user wants to vet, validate, or assess a name before committing to it.
+name: "naming-check"
+description: "Evaluate a proposed name (brand, product, company, app, domain) for conflicts, risks, and quality. Use when the user wants to vet, validate, or assess a name before committing to it."
 metadata:
-  author: Leeor Nahum
+  author: "Leeor Nahum"
   version: "1.0"
 ---
 
