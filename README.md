@@ -2,7 +2,7 @@
 
 `naming-check` evaluates a proposed brand, product, company, app, or domain name for conflicts, risks, and quality.
 
-It checks trademark and brand conflicts, domain and handle availability, linguistic and cultural pitfalls, pronunciation and clarity, and overall brand quality, then closes with a clear verdict: Clean, Caution, or Avoid.
+It closes with one verdict: Clean, Caution, or Avoid.
 
 ## Files
 
