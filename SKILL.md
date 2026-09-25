@@ -1,9 +1,9 @@
 ---
 name: "naming-check"
-description: "Use when a name for a brand, product, company, app, or domain is proposed, compared, or about to be adopted, including when the user asks whether a name is taken. Evaluates the name for conflicts, risks, and quality and gives a verdict."
+description: "Use while generating, brainstorming, searching for, comparing, evaluating, or adopting a name for a brand, product, company, app, or domain, including when the user asks whether a name is taken or available, and even when they only want name ideas and never ask for a check. Evaluates each candidate for conflicts, risks, and quality and gives a verdict."
 metadata:
   author: "Leeor Nahum"
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Naming Check
@@ -20,6 +20,15 @@ Evaluate a proposed name across these dimensions, then give a clear verdict.
 - For each collision, establish how close the niche is and whether the use is live before weighing it. Check the last publish, release, or commit date, current version, downloads or users, stars, archived or deprecated status, current product or store presence, and trademark status. Do not treat missing activity data as proof of dormancy
 
 Do not rule out a candidate until it has actually been checked. Pattern resemblance, the shape of a name, and the assumption that a common construction must already be taken are prompts to investigate, not evidence of a collision. Every verdict must rest on an observed finding. Report an unchecked assumption as unchecked, and do not score or summarize it as a collision.
+
+A match existing is not a finding against the name. A taken domain, a dormant package, a stale listing, a small unrelated business, or a weak use somewhere does not by itself reject a strong candidate, and a strong name is worth the work of establishing what a match actually is. Before a match counts against the name, establish each of these and let the evidence set its weight:
+
+- **Liveness:** whether the use is current, by the signals listed above
+- **Reach:** how many people the use actually reaches, by users, downloads, traffic, press, or store presence
+- **Niche overlap:** how close the use sits to the target category and its buyers
+- **Trademark scope:** which goods or services, jurisdictions, and status a mark covers, since a mark in an unrelated class is not a mark on this product
+- **Search dominance:** who owns the results for the exact name today, and whether the product could plausibly displace them inside its own field
+- **Domain posture:** whether the domain is parked, for sale, redirecting, expired, or the front door of an operating business
 
 #### Collision Strength
 
@@ -47,7 +56,7 @@ Genericness alone is not fatal when the field is clear. Treat it as a cost the o
 - Check the relevant social handles without enumerating every platform. If they were not checked, report them as unchecked rather than inferring availability from how common the name looks
 - When a domain is taken, check its registration date. A recently registered one signals a namespace being actively contested right now, not one settled years ago
 - Count how many TLDs of the same name are held, and whether one party holds several. A single parked domain is noise. The same name claimed across multiple TLDs by one pre-launch project is a competitor staking a deliberate claim, and it is the tightest available measure of how recently that name entered circulation
-- Separate a parked or squatted domain from an operating business. They carry different risk: one is a purchase negotiation, the other is a collision
+- Separate a parked or squatted domain from an operating business. They carry different risk: one is a purchase negotiation, the other is a collision. A taken, parked, expensive, or squatted `.com` and a launch on a fallback TLD are domain friction, a cost reported on its own line and never given a collision tier. A domain enters the Collision Strength tiers only through the business operating on it, weighed by that business's liveness, reach, and niche overlap like any other match
 
 ### Generated Names
 
@@ -60,25 +69,36 @@ Genericness alone is not fatal when the field is clear. Treat it as a cost the o
 - Check for negative, embarrassing, or offensive associations
 - Note if it derives from or closely resembles a word in another language, as a positive or a risk
 
+### Search And Dictionary Meaning
+
+- Search the bare name, its natural spellings, and the name plus the product category, and record the prominent ordinary meanings that come back: a dictionary sense, slang, a medical, legal, or adult term, a place, a person, a news event, or a common word owned by another category
+- Flag a meaning that would embarrass the brand or that buyers will encounter before the product, and say which one
+- Flag an anti-SEO condition: a meaning so prominent that the product cannot plausibly displace it in results for its own name, even inside its field. A neutral common word whose field the product could own is a genericness cost, not this finding
+- Weigh both against the product context and the field the product could own, and say why the meaning matters or does not
+
 ### Pronunciation And Clarity
 
-- Check whether it is phonetically unambiguous, listing likely mispronunciations if not
+- Say the written name the way people will naturally read it, listing every plausible reading of the spelling, including the readings of the target markets' first languages. Name the one that will win and whether it is the one the owner intends
+- Run the reverse test: from hearing the name once, can a listener recover a spelling that reaches the product? List the spellings a listener would try and whether a search or a typed address on each one lands on the product
+- Weigh ambiguity by the product context, not in the abstract. A name passed by word of mouth, spoken in ads or sales calls, or typed into an address bar from a podcast pays the full price of an ambiguous spelling or reading. A name almost always encountered as a link, a store listing, or an icon pays much less, and one that is also short and distinctive may pay almost nothing
 - Check whether it reads naturally in writing without needing explanation
 
 ### Brand Quality
 
 - Check whether the meaning or portmanteau is immediately clear or needs a tagline
-- Assess memorability, distinctiveness, and how easy it is to spell from hearing it
+- Assess memorability and distinctiveness
 - Note any accidental double meanings or unfortunate abbreviations
 
 ## Output Format
 
 Lead with the verdict: **Clean**, **Caution**, or **Avoid**, and name the single strongest piece of evidence supporting it in the verdict sentence. Follow with one short paragraph of key findings, then a bullet list of specific risks or positives worth noting. Keep it concise.
 
-Order findings by their observed decision weight in the report and in every compressed summary. Order collisions from Tier 1 through Tier 5, and place genericness according to its actual weight. A supported **Genericness, Fatal** finding comes first with the collision or category-dominance fact that makes it fatal. Otherwise report it as Low, Moderate, or High cost among findings of comparable consequence. Never let the number of weak findings determine their prominence. Every collision finding must state its tier and liveness evidence inline so its strength survives summarization. Use these compact shapes:
+Order findings by their observed decision weight in the report and in every compressed summary. Order collisions from Tier 1 through Tier 5, and place genericness, domain friction, and meaning findings according to their actual weight. A supported **Genericness, Fatal** finding comes first with the collision or category-dominance fact that makes it fatal. Otherwise report it as Low, Moderate, or High cost among findings of comparable consequence. Never let the number of weak findings determine their prominence. Every collision finding must state its tier and liveness evidence inline so its strength survives summarization. Use these compact shapes:
 
 - `Tier 1, Fatal | Liveness: maintained, last release [date], [usage signal], exact niche | [finding]`
 - `Genericness, High cost | Evidence: common or descriptive use across [contexts], clear target-category field | [finding]`
 - `Genericness, Fatal | Evidence: [genericness evidence] plus [live exact-niche or category-dominance fact] | [finding]`
+- `Domain friction, [Low, Moderate, or High] | Posture: [parked, for sale, redirecting, or operating] since [date], [fallback TLD status] | [finding]`
+- `Meaning, [Embarrassing or Anti-SEO] | Prominence: [what ranks for the bare name and how strongly] | [finding]`
 
 For trademarks, use the registry status, jurisdiction, relevant goods or services, and status date as the liveness evidence. For products and code, include the most useful available publish, release, commit, version, usage, and archive signals. If a signal is unknown, say so rather than silently treating the collision as live or dormant. Never use an unchecked assumption as the verdict's strongest supporting fact.
