@@ -1,6 +1,6 @@
 {
   "name": "naming-check",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Registry lookups for the naming-check Agent Skill.",
   "type": "module",
   "bin": {

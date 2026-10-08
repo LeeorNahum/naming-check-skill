@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Registry lookups for the naming-check full check: domains, domain history,
 // US trademarks, the Apple app stores, and code registries.
-// Zero dependencies. Node.js 18 or later. Prints one JSON object per name.
+// Zero dependencies. Node.js 18 or later. Prints a short summary per name and
+// keeps the full records, one JSON object per name, behind --out or --json.
 
 import { connect } from "node:net";
 import { resolveNs } from "node:dns/promises";
@@ -15,11 +16,18 @@ const UA = "naming-check-lookup (+https://github.com/LeeorNahum/naming-check-ski
 const HELP = `Usage: node scripts/lookup.mjs <name>... [options]
        npx --yes github:LeeorNahum/naming-check-skill <name>... [options]
 
-Runs the registry lookups of the naming-check full check and prints one JSON
-object per name (newline-delimited). It reports records. It gives no verdict.
+Runs the registry lookups of the naming-check full check and prints a short
+summary per name. The full records, one JSON object per name, go to the --out
+file or are printed with --json. It reports records. It gives no verdict.
 
-A name can carry its other forms, the spellings a listener might type:
-  Examplename=Exampelname,Exampleneym
+A name can carry other forms: its spaced form, and spellings its owner says
+people use for it:
+  Examplename="Example Name",Exampelname
+The script adds respellings by rule without being given them. It applies each
+swap that fits the name by itself, in the order listed, then makes one more
+with every swap except the last applied together, and keeps the first four
+that are three letters or longer. The swaps are ph to f, ck to k, a hard c to
+k, x to ks, a final y to i, a doubled consonant to one, and a hard k to c.
 Forms get the marks and stores lookups. Domains, history, and code are looked
 up for the name itself only.
 
@@ -34,18 +42,35 @@ Options:
   --only <list>      Sections to run: ${SECTIONS.join(", ")}
                      (default: ${DEFAULT_SECTIONS.join(", ")})
   --code             Add the code section (npm, PyPI, crates.io, GitHub)
-  --out <path>       Keep the results in a file, one JSON line per name,
-                     written as each name finishes, and print only a count.
+  --out <path>       Keep the full records in a file, one JSON line per name,
+                     written as each name finishes. For more than five names
+                     it prints one line per name and not the summaries.
                      A rerun adds to the file: it looks up only what is
                      missing, failed, or asked with different classes or
                      country for each name given, keeps that name's earlier
                      suffixes when --tlds is left out, and leaves the other
                      names in the file alone. Names that differ only in capitals,
-                     spaces, accents, or punctuation are one name. Use it for more than a
-                     few names
+                     spaces, accents, or punctuation are one name. A row keeps every
+                     form it was ever given, so start a new file to drop one.
+                     Use it on every run, so nothing is looked up twice
+  --read             With --out, print the summary of what the file holds for
+                     the names given and look nothing up
+  --top <n>          Marks shown per list in the summary (default: 10). With
+                     --out and --read, a larger number prints more of a list
+  --json             Print the full records and no summary
   --help             Show this help
 
-Reading the output, per name:
+Reading the summary: each list of marks says how many it holds, live and
+dead, and how many are shown. A dead mark is written DEAD. A mark's goods
+start at the product's first class that the mark covers. "INCOMPLETE",
+"not run", and "PARTIAL" mark a lookup that got no answer or not all of it,
+which is not a clear result. "not searched" marks a list this name cannot
+have. The summary leaves out the marks past --top, the goods past their
+first words, cancelled classes, the dates a registration's upkeep window
+opens and closes, the link to its owner's disputes, and a domain's expiry
+and name servers. Those are in the full records.
+
+Reading the full records, per name:
   failed    Sections that were tried and got no answer. A failed lookup is
             not a clear result. Rerun that name with --only <section>, or do
             the lookup by hand
@@ -64,39 +89,48 @@ Reading the output, per name:
             registration, or exist for a domain nobody holds now. It says
             that there was an earlier holder, not who
   marks     USPTO word marks, United States only, in five lists.
-            containing: marks with the name as a word, live and dead.
-            near: live marks within two letters (one for a name of four
+            containing: marks the office returns for the name, live and
+            dead: the exact ones, marks with it as a word, and marks the
+            office files under it for sounding or reading the same.
+            near: marks within two letters (one for a name of four
             letters or fewer), each with lettersApart. wholeMark is true
             when the whole mark is that close and false when only one word
             of a longer mark is. Whole marks come first. Read those, then
             the rest only for a word that is the heart of its mark.
-            soundNear: live marks within one letter of a respelling that
-            sounds the same (ph as f, c as k, a doubled letter as one), with
-            the respelling. It is a net with holes: a mark that sounds alike
+            soundNear: marks within one letter of a respelling that
+            sounds the same or nearly so (ph as f, c as k, a doubled letter as
+            one, and looser swaps than the forms use), with the respelling. It is a net with holes: a mark that sounds alike
             and is spelled further off, or a mark more than two letters
             away, is in neither list, so the search and store steps still
             have to look for same-sound and same-stem names.
             containingInClasses: present when containing overflowed and the
             live marks in --classes were fetched separately.
-            leading: live marks that are the first four or more letters of
+            leading: marks that are the first four or more letters of
             the name.
-            builtOn: live marks holding a longer word that starts or ends
+            builtOn: marks holding a longer word that starts or ends
             with the whole name, such as the name plus "pro", with that word,
             where the name sits in it, and extraLetters. It holds only
             marks not already in containing, near, soundNear, or leading:
             containing has the name as a word of its own, near has a word
             within two letters, and builtOn has the whole name inside a
-            longer word. containing and near can list the same mark. It
-            is not looked up for a name under four letters
-            or not in Latin letters, and then searchedAll is false.
+            longer word. containing and near can list the same mark.
+            builtOn is not looked up for a name under four letters or not in
+            Latin letters, and then searchedAll is false. notSearched on a
+            list says why it was not looked up.
             Marks that are that one word come first, shortest first. A name
             that begins an ordinary word returns that word's marks here too,
             so read the short ones and those in the product's classes. A name
             buried in the middle of a word is not listed.
-            With --classes, near, soundNear, leading, and builtOn are limited
-            to those classes. Every list is read to its end, up to a few thousand
-            marks. searchedAll false means even that was not all of them, so
-            the list is partial. classes leaves out cancelled classes, which
+            near, soundNear, leading, and builtOn hold live and dead marks,
+            live first at the same closeness, each with live true or false,
+            and the list counts both under live and dead. With --classes
+            they are limited to those classes. Every list is read to its end,
+            up to ten thousand marks. searchedAll false means even that was
+            not all of the live ones, so the list is partial.
+            deadSearchedAll false means only that some dead marks are
+            missing. goods is filled for the first 500 marks of each of these
+            four lists and is null after that, so open record for the rest.
+            classes leaves out cancelled classes, which
             are under cancelledClasses. Each mark carries its filed, firstUse,
             and registered dates, and for a live registration upkeep: how
             long it has been registered, and when its next declaration of
@@ -108,16 +142,21 @@ Reading the output, per name:
   code      Exact package on npm, PyPI, and crates.io, GitHub repositories by
             stars and by recent activity, and whether the GitHub account of
             that name is taken
-  forms     For each other form: the marks containing it (no near or leading
-            lists) and the iPhone and iPad store only
+  ruleForms The respellings made by rule for this name. Each is looked up
+            as a form
+  forms     For each form, given or made by rule: the marks containing it
+            (no near or leading lists) and the iPhone and iPad store only. A
+            form that is an ordinary word returns that word's marks and apps
   yours     Some of the lookups this script does not run, with exact queries
-            and addresses: four searches, templates for the two you write, and
-            store and dictionary pages
-            marked with when they apply. It is a start. Other markets,
+            and addresses: the searches, with a template for the stem search, and
+            store and dictionary pages marked with when they apply.
+            Dictionary pages are listed for the name and the forms given, not
+            for the respellings by rule. It is a start. Other markets,
             offices, languages, and fields are still to add
 
-Requests to each service are spaced out, so allow about a minute per name
-with three suffixes and two forms, and about three with --code. Run one copy at a
+Requests to each service are spaced out and the services are asked side by
+side, so allow about a minute per name, more for a short name or one with
+several forms, and about three with --code. Run one copy at a
 time: several at once get the trademark and store services to refuse all of
 them. For a long list use --out, run it in the background if the shell has a
 time limit, and rerun the same command to pick up where it stopped.
@@ -127,10 +166,11 @@ Exit codes: 0 every name is complete, 1 bad arguments, 2 some name has a
 failed or not-run section (results are still printed).
 
 Examples:
-  node scripts/lookup.mjs Examplename --tlds com,app --category "word one,word two"
-  node scripts/lookup.mjs "Examplename=Exampelname,Exampleneym" --tlds com --classes 9,42
+  node scripts/lookup.mjs Examplename --tlds com,app --category "word one,word two" --out lookups.jsonl
+  node scripts/lookup.mjs "Examplename=Exampelname,Exampleneym" --tlds com --classes 9,42 --out lookups.jsonl
   node scripts/lookup.mjs --file names.txt --tlds com,io --code --out lookups.jsonl
-  node scripts/lookup.mjs Examplename --only history --out lookups.jsonl`;
+  node scripts/lookup.mjs Examplename --only history --out lookups.jsonl
+  node scripts/lookup.mjs Examplename --out lookups.jsonl --read --top 40`;
 
 function fail(message) {
   process.stderr.write(`Error: ${message}\nRun with --help for usage.\n`);
@@ -145,7 +185,7 @@ function parseSpec(text) {
 }
 
 function parseArgs(argv) {
-  const opts = { specs: [], tlds: ["com"], tldsGiven: false, category: [], classes: [], classesGiven: false, country: "us", countryGiven: false, only: null, code: false, out: null };
+  const opts = { specs: [], tlds: ["com"], tldsGiven: false, category: [], classes: [], classesGiven: false, country: "us", countryGiven: false, only: null, code: false, out: null, read: false, json: false, top: 10 };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => {
@@ -187,6 +227,13 @@ function parseArgs(argv) {
       opts.code = true;
     } else if (arg === "--out") {
       opts.out = value();
+    } else if (arg === "--read") {
+      opts.read = true;
+    } else if (arg === "--json") {
+      opts.json = true;
+    } else if (arg === "--top") {
+      opts.top = Number(value());
+      if (!Number.isInteger(opts.top) || opts.top < 1) fail(`--top takes a whole number, 1 or more. Received: "${argv[i]}"`);
     } else if (arg.startsWith("--")) {
       fail(`unknown option ${arg}.`);
     } else {
@@ -208,6 +255,7 @@ function parseArgs(argv) {
   if (dropped.length) process.stderr.write(`Skipped as duplicates (same letters as an earlier name): ${dropped.join(", ")}\n`);
   if (!opts.specs.length) fail("give at least one name, or --file <path>.");
   if (!opts.tlds.length) fail("--tlds needs at least one suffix.");
+  if (opts.read && !opts.out) fail("--read needs --out <path>, the file to read from.");
   opts.sections = opts.only ?? [...DEFAULT_SECTIONS, ...(opts.code ? ["code"] : [])];
   return opts;
 }
@@ -440,7 +488,7 @@ async function historySection(name, tlds, domainRecords) {
     }
     try {
       const url = `https://web.archive.org/cdx/search/cdx?url=${domain}&output=json&fl=timestamp,statuscode&collapse=timestamp:6&limit=400`;
-      const response = await request(url, { timeout: 45000, retries: 3, waits: [10, 30, 60], retryOn: [403, 429, 500, 502, 503, 504] });
+      const response = await request(url, { timeout: 45000, retries: 2, waits: [5, 20], retryOn: [403, 429, 500, 502, 503, 504] });
       if (response.status === 429 || response.status === 403) {
         refuse("web.archive.org");
         throw new Error(`archive ${BLOCKED}`);
@@ -482,15 +530,23 @@ async function historySection(name, tlds, domainRecords) {
 
 // This is the search service behind the USPTO's public trademark search page.
 // The USPTO publishes no specification for it, so treat a failure as "not run".
-async function usptoSearch(query, { liveOnly = false, classes = [], size = 60, from = 0 } = {}) {
+// The fields a mark row is built from. The wide lists leave the goods out, which
+// is most of a row's size, and fetch them afterwards for the marks listed first.
+const MARK_FIELDS = ["id", "wordmark", "alive", "statusDescription", "internationalClass", "ownerName", "filedDate", "registrationDate", "firstUseAnyDate", "renewalDate"];
+const GOODS_FIELD = "goodsAndServices";
+// The service answers no further than this many marks into a result.
+const USPTO_WINDOW = 10000;
+
+function usptoSearch(query, { liveOnly = false, deadOnly = false, classes = [], size = 60, from = 0, goods = true } = {}) {
   const filter = [];
-  if (liveOnly) filter.push({ term: { LD: "true" } });
+  if (liveOnly || deadOnly) filter.push({ term: { LD: liveOnly ? "true" : "false" } });
   if (classes.length) filter.push({ terms: { IC: classes.map((c) => c.padStart(3, "0")) } });
-  const body = JSON.stringify({
-    query: { bool: { must: [{ query_string: { query, default_operator: "AND", fields: ["WM", "PM"], fuzzy_max_expansions: 5000 } }], ...(filter.length ? { filter } : {}) } },
-    size,
-    from,
-  });
+  const bool = { must: [{ query_string: { query, default_operator: "AND", fields: ["WM", "PM"], fuzzy_max_expansions: 5000 } }], ...(filter.length ? { filter } : {}) };
+  return usptoPost({ bool }, { size, from, fields: goods ? [...MARK_FIELDS, GOODS_FIELD] : MARK_FIELDS });
+}
+
+async function usptoPost(query, { size, from = 0, fields }) {
+  const body = JSON.stringify({ query, size, from, _source: fields });
   const response = await request("https://tmsearch.uspto.gov/prod-stage-v1-0-0/tmsearch", {
     method: "POST",
     body,
@@ -511,16 +567,46 @@ async function usptoSearch(query, { liveOnly = false, classes = [], size = 60, f
 }
 
 // Reads every page of a result, up to a cap. searchedAll is false when the cap cut it short.
-async function usptoAll(query, options, cap) {
+// A total at the window's edge means that many or more, so it never counts as all of them.
+async function usptoAll(query, options, cap = USPTO_WINDOW) {
   const rows = [];
   let total = 0;
+  const pageSize = options.goods === false ? 2500 : 500;
   do {
-    const page = await usptoSearch(query, { ...options, size: 500, from: rows.length });
+    const page = await usptoSearch(query, { ...options, size: Math.min(pageSize, USPTO_WINDOW - rows.length), from: rows.length });
     total = page.total;
     rows.push(...page.rows);
     if (!page.rows.length) break;
-  } while (rows.length < total && rows.length < cap);
-  return { total, rows, searchedAll: rows.length >= total };
+  } while (rows.length < total && rows.length < cap && rows.length < USPTO_WINDOW);
+  return { total, rows, searchedAll: rows.length >= total && total < USPTO_WINDOW };
+}
+
+// Live and dead marks for one of the wide lists, read apart so that a flood of dead
+// marks can never leave the live ones partial.
+async function usptoLiveAndDead(query, classes) {
+  const live = await usptoAll(query, { liveOnly: true, classes, goods: false });
+  const dead = await usptoAll(query, { deadOnly: true, classes, goods: false });
+  return { rows: [...live.rows, ...dead.rows], searchedAll: live.searchedAll, deadSearchedAll: dead.searchedAll };
+}
+
+// Fills in the goods of the first marks of each wide list, by serial number.
+const GOODS_PER_LIST = 500;
+async function fillGoods(lists) {
+  const wanted = new Map();
+  for (const list of lists) for (const mark of list.marks.slice(0, GOODS_PER_LIST)) wanted.set(mark.serial, null);
+  const serials = [...wanted.keys()];
+  for (let i = 0; i < serials.length; i += 500) {
+    const page = await usptoPost({ ids: { values: serials.slice(i, i + 500) } }, { size: 500, fields: ["id", GOODS_FIELD] });
+    for (const row of page.rows) wanted.set(row.id, cut((row[GOODS_FIELD] ?? []).join(" "), 1500));
+  }
+  for (const list of lists) for (const mark of list.marks.slice(0, GOODS_PER_LIST)) mark.goods = wanted.get(mark.serial);
+}
+
+// What every wide list reports beside its marks.
+// A list that was not looked up carries notSearched, the reason, so that its emptiness never reads as a result.
+function wideList(marks, fetched, classes, extra = {}) {
+  const live = marks.filter((m) => m.live).length;
+  return { ...extra, total: marks.length, live, dead: marks.length - live, limitedToClasses: classes.length > 0, searchedAll: fetched.searchedAll, deadSearchedAll: fetched.deadSearchedAll, listed: marks.length, marks };
 }
 
 // The search service has no published contract. If it stops finding a mark that
@@ -575,7 +661,7 @@ function markRow(source, name, classes) {
     classes: markClasses,
     ...(cancelledClasses.length ? { cancelledClasses } : {}),
     ...(classes.length ? { classMatch: markClasses.some((c) => classes.includes(c)) } : {}),
-    goods: cut((source.goodsAndServices ?? []).join(" "), 1500),
+    goods: source[GOODS_FIELD] ? cut(source[GOODS_FIELD].join(" "), 1500) : null,
     owner: (source.ownerName ?? []).join(" / ") || null,
     filed: source.filedDate?.slice(0, 10) ?? null,
     registered: source.registrationDate ?? null,
@@ -606,7 +692,33 @@ function editDistance(a, b) {
   return row[b.length];
 }
 
-// Respellings a listener could type for the same sound: each swap alone, and all of them together.
+// Respellings looked up as forms, the first four of: each swap alone, k to c, then all but k to c together.
+const FORM_SWAPS = [
+  [/ph/g, "f"],
+  [/ck/g, "k"],
+  [/c(?=[aou]|[^eiyhk]|$)/g, "k"],
+  [/x/g, "ks"],
+  [/(?<=[^aeiou])y$/g, "i"],
+  [/([^aeiou0-9])\1/g, "$1"],
+];
+const K_TO_C = /(?<!c)k(?=[aoulr]|$)/g;
+function ruleForms(name) {
+  const key = slug(name);
+  if (!/^[a-z0-9]+$/.test(key)) return [];
+  const forms = new Set();
+  let all = key;
+  for (const [pattern, replacement] of FORM_SWAPS) {
+    forms.add(key.replace(pattern, replacement));
+    all = all.replace(pattern, replacement);
+  }
+  forms.add(key.replace(K_TO_C, "c"));
+  forms.add(all);
+  forms.delete(key);
+  const capital = /^\p{Lu}/u.test(name.trim());
+  return [...forms].filter((form) => form.length >= 3).slice(0, 4).map((form) => (capital ? form[0].toUpperCase() + form.slice(1) : form));
+}
+
+// A wider net of same-sound respellings, used only to find marks near one of them.
 const SOUND_SWAPS = [
   [/ph/g, "f"],
   [/ck/g, "k"],
@@ -656,8 +768,8 @@ async function marksSection(name, classes, { exactOnly = false } = {}) {
     result.containing = { total: containing.total, searchedAll: containing.searchedAll, listed: rows.size, marks: rankMarks([...rows.values()].map((s) => markRow(s, name, classes))) };
     if (exactOnly) return result;
 
-    // Live marks within two letters, or one for a name of four letters or fewer, closest first.
-    const near = await usptoAll(`${key}~${key.length >= 5 ? 2 : 1}`, { liveOnly: true, classes }, 8000);
+    // Marks within two letters, or one for a name of four letters or fewer, closest first.
+    const near = await usptoLiveAndDead(`${key}~${key.length >= 5 ? 2 : 1}`, classes);
     // The service also returns marks that merely contain a near word, so keep those truly within reach.
     const reach = key.length >= 5 ? 2 : 1;
     const nearMarks = near.rows.map((s) => markRow(s, name, classes)).filter((m) => !m.exact);
@@ -667,13 +779,16 @@ async function marksSection(name, classes, { exactOnly = false } = {}) {
       // False when only one word of a longer mark is close, which is most of a long list.
       m.wholeMark = whole <= reach;
     }
-    const within = nearMarks.filter((m) => m.lettersApart <= reach).sort((a, b) => b.wholeMark - a.wholeMark || a.lettersApart - b.lettersApart || (b.classMatch ?? false) - (a.classMatch ?? false));
-    result.near = { total: within.length, limitedToClasses: classes.length > 0, searchedAll: near.searchedAll, listed: within.length, marks: within };
+    // Whole marks first, then nearest, live, and for a longer mark the fewest words, where the near word is likeliest its heart.
+    const wordCount = (m) => words(m.wordmark).split(" ").length;
+    const within = nearMarks.filter((m) => m.lettersApart <= reach).sort((a, b) => b.wholeMark - a.wholeMark || a.lettersApart - b.lettersApart || b.live - a.live || wordCount(a) - wordCount(b) || (b.classMatch ?? false) - (a.classMatch ?? false));
+    result.near = wideList(within, near, classes);
 
-    // Live marks within one letter of a respelling that sounds the same, which a letter count alone misses.
+    // Marks within one letter of a respelling that sounds the same, which a letter count alone misses.
     const respelled = soundForms(key);
+    const none = { searchedAll: true, deadSearchedAll: true };
     if (respelled.length) {
-      const sound = await usptoAll(respelled.map((form) => `${form}~1`).join(" OR "), { liveOnly: true, classes }, 4000);
+      const sound = await usptoLiveAndDead(respelled.map((form) => `${form}~1`).join(" OR "), classes);
       const listed = new Set(within.map((m) => m.serial));
       const soundMarks = [];
       for (const source of sound.rows) {
@@ -687,27 +802,27 @@ async function marksSection(name, classes, { exactOnly = false } = {}) {
         }
         if (best) soundMarks.push({ ...m, respelling: best.form, lettersFromRespelling: best.apart });
       }
-      soundMarks.sort((a, b) => a.lettersFromRespelling - b.lettersFromRespelling || (b.classMatch ?? false) - (a.classMatch ?? false));
-      result.soundNear = { respellings: respelled, total: soundMarks.length, limitedToClasses: classes.length > 0, searchedAll: sound.searchedAll, listed: soundMarks.length, marks: soundMarks };
+      soundMarks.sort((a, b) => a.lettersFromRespelling - b.lettersFromRespelling || b.live - a.live || (b.classMatch ?? false) - (a.classMatch ?? false));
+      result.soundNear = wideList(soundMarks, sound, classes, { respellings: respelled });
     } else {
-      result.soundNear = { respellings: [], total: 0, limitedToClasses: classes.length > 0, searchedAll: true, listed: 0, marks: [] };
+      result.soundNear = wideList([], none, classes, { respellings: [], notSearched: "the name has no same-sound respelling by this script's rules, so the search and store steps have to find same-sound names" });
     }
 
-    // Live marks that are the leading part of the name, four letters or more.
+    // Marks that are the leading part of the name, four letters or more.
     const prefixes = [];
     for (let length = 4; length < key.length; length++) prefixes.push(key.slice(0, length));
     if (prefixes.length) {
-      const leading = await usptoAll(prefixes.join(" OR "), { liveOnly: true, classes }, 3000);
+      const leading = await usptoLiveAndDead(prefixes.join(" OR "), classes);
       const marks = rankMarks(leading.rows.map((s) => markRow(s, name, classes)).filter((m) => prefixes.includes(slug(m.wordmark ?? ""))));
-      result.leading = { total: marks.length, limitedToClasses: classes.length > 0, searchedAll: leading.searchedAll, listed: marks.length, marks };
+      result.leading = wideList(marks, leading, classes);
     } else {
-      result.leading = { total: 0, limitedToClasses: classes.length > 0, searchedAll: true, listed: 0, marks: [] };
+      result.leading = wideList([], none, classes, { notSearched: "the name has no leading part of four letters or more" });
     }
 
-    // Live marks with a longer word that starts or ends with the whole name, such as the name plus "pro".
+    // Marks with a longer word that starts or ends with the whole name, such as the name plus "pro".
     // The lists above compare whole words, so they cannot see these.
     if (key.length >= 4 && /^[a-z0-9]+$/.test(key)) {
-      const built = await usptoAll(`${key}* OR *${key}`, { liveOnly: true, classes }, 3000);
+      const built = await usptoLiveAndDead(`${key}* OR *${key}`, classes);
       const shown = new Set([...result.containing.marks, ...result.near.marks, ...result.soundNear.marks, ...result.leading.marks].map((m) => m.serial));
       const marks = [];
       for (const source of built.rows) {
@@ -718,11 +833,12 @@ async function marksSection(name, classes, { exactOnly = false } = {}) {
         if (!word) continue;
         marks.push({ ...m, word, namePosition: word.startsWith(key) ? "starts the word" : "ends the word", extraLetters: word.length - key.length, wholeMark: slug(m.wordmark ?? "") === word });
       }
-      marks.sort((a, b) => b.wholeMark - a.wholeMark || a.extraLetters - b.extraLetters || (b.classMatch ?? false) - (a.classMatch ?? false));
-      result.builtOn = { total: marks.length, limitedToClasses: classes.length > 0, searchedAll: built.searchedAll, listed: marks.length, marks };
+      marks.sort((a, b) => b.wholeMark - a.wholeMark || a.extraLetters - b.extraLetters || b.live - a.live || (b.classMatch ?? false) - (a.classMatch ?? false));
+      result.builtOn = wideList(marks, built, classes);
     } else {
-      result.builtOn = { total: 0, limitedToClasses: classes.length > 0, searchedAll: false, listed: 0, marks: [], note: "Not looked up: the name is shorter than four letters or not in Latin letters. Query the office for marks that start or end with it." };
+      result.builtOn = wideList([], { searchedAll: false, deadSearchedAll: false }, classes, { notSearched: "the name is shorter than four letters or not in Latin letters. Query the office for marks that start or end with it" });
     }
+    await fillGoods([result.near, result.soundNear, result.leading, result.builtOn]);
     return result;
   } catch (error) {
     return { ...result, ran: false, error: error.message };
@@ -843,22 +959,22 @@ async function codeSection(name) {
 
 function yours(spec, opts) {
   const { name, forms } = spec;
+  const given = forms.filter((form) => !spec.byRule.includes(form));
   const quote = (t) => `"${t}"`;
   const category = opts.category.length ? `(${opts.category.map((w) => (w.includes(" ") ? quote(w) : w)).join(" OR ")})` : "(<category words joined by OR>)";
-  const domain = domainFor(name, opts.tlds[0]) ?? `${slug(name)}.${opts.tlds[0]}`;
+  const domains = opts.tlds.map((tld) => domainFor(name, tld) ?? `${slug(name)}.${tld}`);
   const list = [
     { step: "search", query: quote(name) },
     { step: "search", query: `${quote(name)} ${category}` },
     ...(forms.length ? [{ step: "search", query: `(${forms.map(quote).join(" OR ")}) ${category}` }] : []),
-    { step: "search", when: "buyers read English. Otherwise write the four adverse words in their language", query: `(${quote(name)} OR ${quote(domain)}) (scam OR fraud OR lawsuit OR complaint)` },
-    { step: "search", query: `(<near forms and same-sound respellings you choose, each in quotes, joined by OR>) ${category}` },
+    { step: "search", when: "when buyers read English. Otherwise write the four adverse words in their language", query: `(${[name, ...domains].map(quote).join(" OR ")}) (scam OR fraud OR lawsuit OR complaint)` },
     { step: "search", query: `"<the name's stem: its leading word or root>" ${category}` },
   ];
-  for (const term of [name, ...forms]) list.push({ step: "marketplaces", when: "the product is an app", url: `https://play.google.com/store/search?q=${encodeURIComponent(term)}&c=apps` });
-  for (const term of [name, ...forms]) {
-    for (const spelling of new Set([term.toLowerCase(), term])) list.push({ step: "languages", when: "always, the page lists the word in every language that has it", url: `https://en.wiktionary.org/wiki/${encodeURIComponent(spelling)}` });
+  for (const term of [name, ...forms]) list.push({ step: "marketplaces", when: "when the product is an app", url: `https://play.google.com/store/search?q=${encodeURIComponent(term)}&c=apps` });
+  for (const term of [name, ...given]) {
+    for (const spelling of new Set([term.toLowerCase(), term])) list.push({ step: "languages", when: "always. The page lists the word in every language that has it", url: `https://en.wiktionary.org/wiki/${encodeURIComponent(spelling)}` });
   }
-  for (const term of [name, ...forms]) list.push({ step: "languages", when: "buyers read English", url: `https://www.urbandictionary.com/define.php?term=${encodeURIComponent(term)}` });
+  for (const term of [name, ...given]) list.push({ step: "languages", when: "when buyers read English", url: `https://www.urbandictionary.com/define.php?term=${encodeURIComponent(term)}` });
   return list;
 }
 
@@ -866,15 +982,21 @@ function yours(spec, opts) {
 
 // Looks up what is asked for and not already answered in `base`, a row kept from an earlier run.
 async function lookupName(spec, opts, base) {
-  const { name, forms } = spec;
+  const { name } = spec;
   const result = base ? { ...base } : { name };
+  // The forms looked up are the ones given and the respellings made by rule.
+  result.ruleForms = ruleForms(name);
+  const given = new Set(spec.forms.map(slug));
+  const forms = [...spec.forms, ...result.ruleForms.filter((form) => !given.has(slug(form)))];
   // A rerun that leaves out --classes or --country keeps what the row was looked up with.
   const classes = !opts.classesGiven && base?.settings?.classes ? base.settings.classes : opts.classes;
   const country = !opts.countryGiven && base?.settings?.country ? base.settings.country : opts.country;
   const settings = { classes: [...classes].sort(), country };
   const changed = (key) => base?.settings && JSON.stringify(base.settings[key]) !== JSON.stringify(settings[key]);
   const want = (section) => opts.sections.includes(section);
-  const missing = (section) => want(section) && (!result[section] || result[section].ran === false);
+  // A marks record from before the wide lists held dead marks is looked up again.
+  const liveOnly = (marks) => Boolean(marks?.near) && marks.near.deadSearchedAll === undefined;
+  const missing = (section) => want(section) && (!result[section] || result[section].ran === false || (section === "marks" && liveOnly(result.marks)));
 
   // A rerun with no --tlds keeps looking at the suffixes the row already has.
   const label = slug(name);
@@ -892,41 +1014,54 @@ async function lookupName(spec, opts, base) {
     return merged;
   };
   let looked = false;
-
-  if (want("domains") && (missing("domains") || !covers("domains"))) {
-    result.domains = merge(result.domains, await domainsSection(name, tlds));
-    looked = true;
-  }
-  if (want("history") && (missing("history") || !covers("history"))) {
-    result.history = merge(result.history, await historySection(name, tlds, result.domains?.records));
-    looked = true;
-  }
-  if (missing("marks") || (want("marks") && changed("classes"))) {
-    result.marks = await marksSection(name, classes);
-    looked = true;
-  }
-  if (missing("stores") || (want("stores") && changed("country"))) {
-    result.stores = await storesSection(name, country);
-    looked = true;
-  }
-  if (missing("code")) {
-    result.code = await codeSection(name);
-    looked = true;
-  }
-
   const entries = new Map((result.forms ?? []).map((entry) => [entry.form, entry]));
-  for (const form of forms) {
-    const entry = entries.get(form) ?? { form };
-    if (want("marks") && (!entry.marks || entry.marks.ran === false || changed("classes"))) {
-      entry.marks = await marksSection(form, classes, { exactOnly: true });
+  for (const form of forms) if (!entries.has(form)) entries.set(form, { form });
+
+  // Each service has its own queue, so the services are asked side by side.
+  // History waits for the domain records, which tell it whether a holder came before.
+  const addresses = async () => {
+    if (want("domains") && (missing("domains") || !covers("domains"))) {
+      result.domains = merge(result.domains, await domainsSection(name, tlds));
       looked = true;
     }
-    if (want("stores") && (!entry.stores || entry.stores.ran === false || changed("country"))) {
-      entry.stores = await storesSection(form, country, { iphoneOnly: true });
+    if (want("history") && (missing("history") || !covers("history"))) {
+      result.history = merge(result.history, await historySection(name, tlds, result.domains?.records));
       looked = true;
     }
-    entries.set(form, entry);
-  }
+  };
+  const marks = async () => {
+    if (missing("marks") || (want("marks") && changed("classes"))) {
+      result.marks = await marksSection(name, classes);
+      looked = true;
+    }
+    for (const form of forms) {
+      const entry = entries.get(form);
+      if (want("marks") && (!entry.marks || entry.marks.ran === false || changed("classes"))) {
+        entry.marks = await marksSection(form, classes, { exactOnly: true });
+        looked = true;
+      }
+    }
+  };
+  const stores = async () => {
+    if (missing("stores") || (want("stores") && changed("country"))) {
+      result.stores = await storesSection(name, country);
+      looked = true;
+    }
+    for (const form of forms) {
+      const entry = entries.get(form);
+      if (want("stores") && (!entry.stores || entry.stores.ran === false || changed("country"))) {
+        entry.stores = await storesSection(form, country, { iphoneOnly: true });
+        looked = true;
+      }
+    }
+  };
+  const code = async () => {
+    if (missing("code")) {
+      result.code = await codeSection(name);
+      looked = true;
+    }
+  };
+  await Promise.all([addresses(), marks(), stores(), code()]);
   if (entries.size) result.forms = [...entries.values()];
 
   result.settings = settings;
@@ -944,8 +1079,176 @@ async function lookupName(spec, opts, base) {
     }
   }
   if (looked || !result.lookedUp) result.lookedUp = new Date().toISOString();
-  result.yours = yours({ name, forms: (result.forms ?? []).map((entry) => entry.form) }, { ...opts, tlds });
+  result.yours = yours({ name, forms: (result.forms ?? []).map((entry) => entry.form), byRule: result.ruleForms.filter((form) => !given.has(slug(form))) }, { ...opts, tlds });
   return { result, looked };
+}
+
+// ---- the summary ----
+
+const day = (value) => (value ? String(value).slice(0, 10) : null);
+const clip = (text, limit) => (text && text.length > limit ? `${text.slice(0, limit).trimEnd()}...` : text ?? "");
+const liveAndDead = (marks) => {
+  const live = marks.filter((m) => m.live).length;
+  return `${live} live, ${marks.length - live} dead`;
+};
+
+// One mark on one line: how close, live or dead, where it is filed, whose it is, and how its goods begin.
+function markLine(m, classes = []) {
+  const close = [
+    m.exact ? "exact" : null,
+    m.lettersApart !== undefined ? `${m.lettersApart} ${m.lettersApart === 1 ? "letter" : "letters"} apart${m.wholeMark ? "" : ", one word of the mark"}` : null,
+    m.respelling ? `${m.lettersFromRespelling} from "${m.respelling}"` : null,
+    m.word ? `"${m.word}" ${m.namePosition}` : null,
+  ].filter(Boolean)[0];
+  const dates = [m.filed ? `filed ${m.filed}` : null, m.firstUse ? `first use ${day(m.firstUse)}` : null, m.registered ? `registered ${day(m.registered)}` : null, m.upkeep?.next ? `next ${m.upkeep.next.filing} due ${m.upkeep.next.due}` : null].filter(Boolean).join(", ");
+  const parts = [
+    m.wordmark,
+    close,
+    `${m.live ? "live" : "DEAD"}, ${(m.status ?? "no status").toLowerCase()}`,
+    `class ${m.classes.join(", ") || "none listed"}`,
+    clip((m.owner ?? "no owner listed").replace(/\s*\(.*$/, ""), 40),
+    dates,
+    `sn ${m.serial}`,
+    m.goods ? clip(goodsFrom(m.goods, classes), 90) : "goods: open the record",
+  ];
+  return `      ${parts.filter(Boolean).join(" | ")}`;
+}
+
+// A mark's goods, starting at the product's first class that the mark lists, so the part that matters is not cut off.
+function goodsFrom(goods, classes) {
+  const text = goods.replace(/\s+/g, " ");
+  const starts = classes.map((c) => text.indexOf(`IC ${String(c).padStart(3, "0")}:`)).filter((i) => i >= 0);
+  return starts.length ? text.slice(Math.min(...starts)) : text;
+}
+
+// How a list's marks fall across classes: the product's classes when given, or else the five fullest.
+function classLine(marks, classes) {
+  const count = new Map();
+  for (const m of marks) for (const c of m.classes) count.set(c, [...(count.get(c) ?? []), m]);
+  const shown = classes.length ? classes : [...count.keys()].sort((a, b) => count.get(b).length - count.get(a).length).slice(0, 5);
+  return `By class, a mark counted once in each: ${shown.map((c) => `class ${c}: ${liveAndDead(count.get(c) ?? [])}`).join(". ")}`;
+}
+
+// The first rows of a list, how the counted marks fall across classes, and what was left out.
+// `counted` is the part of the list its heading counts, which the rows start with.
+function markRows(lines, marks, counted, opts, classes, kind = "live one") {
+  if (!marks.length) return;
+  if (counted.length > opts.top) lines.push(`      ${classLine(counted, classes)}`);
+  for (const m of marks.slice(0, opts.top)) lines.push(markLine(m, classes));
+  if (marks.length <= opts.top) return;
+  const lastLive = counted.findLastIndex((m) => m.live) + 1;
+  lines.push(`      ${opts.top} of ${marks.length} shown.${lastLive > opts.top ? ` --top ${lastLive} shows every ${kind}.` : ` Every ${kind} is shown.`}${counted.length < marks.length ? " The longer marks follow the whole ones, nearest and fewest words first." : ""}`);
+}
+
+// One of the wide lists. In the near list only whole marks are counted up front, since a
+// longer mark that merely holds a near word is rarely a match. Those follow in the rows.
+function markList(lines, title, list, opts, classes, { wholeFirst = false } = {}) {
+  if (!list) return;
+  const why = list.notSearched ?? (list.note ? list.note.replace(/^Not looked up: /, "") : null);
+  if (why) {
+    lines.push(`    ${title}: not searched, ${why.replace(/\.$/, "")}`);
+    return;
+  }
+  const partial = [list.searchedAll === false ? "PARTIAL: the office holds more live marks than were read" : null, list.deadSearchedAll === false ? "some dead marks not read" : null, list.deadSearchedAll === undefined ? "dead marks not searched: this record is from an older version, so run the lookup again" : null].filter(Boolean).join(". ");
+  const whole = wholeFirst ? list.marks.filter((m) => m.wholeMark) : list.marks;
+  const rest = list.marks.filter((m) => !whole.includes(m));
+  lines.push(`    ${title}: ${whole.length ? liveAndDead(whole) : "none"}${rest.length ? `, and ${rest.length} longer marks that only hold a near word (${liveAndDead(rest)})` : ""}${partial ? `. ${partial}` : ""}`);
+  markRows(lines, list.marks, whole, opts, classes, wholeFirst ? "live whole mark" : "live one");
+}
+
+function marksLines(lines, marks, opts, classes, { formOf = null } = {}) {
+  if (!marks) return;
+  if (marks.ran === false) {
+    lines.push(`    not run: ${marks.error}`);
+    return;
+  }
+  const containing = marks.containing;
+  const partial = containing.searchedAll === false && !marks.containingInClasses?.searchedAll ? `. PARTIAL: ${containing.listed} of ${containing.total} read` : "";
+  const exact = containing.marks.filter((m) => m.exact);
+  const others = containing.marks.filter((m) => !m.exact);
+  const what = formOf ? `"${formOf}"` : "the name";
+  lines.push(`    Exactly ${what}: ${exact.length ? liveAndDead(exact) : "none"}${partial}`);
+  markRows(lines, exact, exact, opts, classes);
+  lines.push(`    Other marks the office returns for ${what}: ${others.length ? liveAndDead(others) : "none"}${partial}`);
+  markRows(lines, others, others, opts, classes);
+  if (formOf) return;
+  markList(lines, "Near by spelling, whole marks", marks.near, opts, classes, { wholeFirst: true });
+  markList(lines, `Near by sound${marks.soundNear?.respellings?.length ? ` (within a letter of ${marks.soundNear.respellings.join(", ")})` : ""}`, marks.soundNear?.respellings?.length === 0 && !marks.soundNear.notSearched ? { ...marks.soundNear, notSearched: "the name has no same-sound respelling by this script's rules" } : marks.soundNear, opts, classes);
+  markList(lines, "The leading part of the name", marks.leading, opts, classes);
+  markList(lines, "Built on the name", marks.builtOn, opts, classes);
+}
+
+function storeLines(lines, stores) {
+  if (!stores) return;
+  if (stores.ran === false) {
+    lines.push(`    not run: ${stores.error}`);
+    return;
+  }
+  lines.push(`    ${stores.store}, title or seller carries the name: ${stores.apps.length || "none"}`);
+  for (const a of stores.apps) lines.push(`      ${a.title} | ${a.seller} | ${a.platform} | ${a.genre} | released ${a.released} | updated ${a.updated} | ${a.ratings} ratings | ${a.url}`);
+  if (stores.otherTopResults?.length) lines.push(`      Also returned: ${stores.otherTopResults.map((o) => clip(o.title, 40)).join(", ")}`);
+}
+
+function summarize(r, opts) {
+  if (r.notInFile) return `${r.name}\n  Not in ${opts.out}. Run the same command without --read to look it up.`;
+  const classes = [...(r.settings?.classes ?? [])].sort((a, b) => a - b);
+  const lines = [r.name];
+  const gaps = [...r.failed.map((f) => `failed ${f}`), ...r.notRun.map((n) => `not run ${n}`)];
+  const lists = [r.marks, ...(r.forms ?? []).map((entry) => entry.marks)].filter((m) => m && m.ran !== false);
+  const partial = lists.some((m) => (m.containing.searchedAll === false && !m.containingInClasses?.searchedAll) || [m.near, m.soundNear, m.leading, m.builtOn].some((list) => list && !list.notSearched && !list.note && list.searchedAll === false));
+  lines.push(gaps.length ? `  INCOMPLETE: ${gaps.join(", ")}. A lookup with no answer is not a clear result.` : `  Every section answered, looked up ${day(r.lookedUp)}.${partial ? " A list of marks below is PARTIAL." : ""}${r.marks?.near && r.marks.near.deadSearchedAll === undefined ? " The marks are from an older version that left dead marks out, so run the lookup again." : ""}`);
+  lines.push(`  Respellings by rule, looked up as forms: ${r.ruleForms?.length ? r.ruleForms.join(", ") : "none"}`);
+
+  if (r.domains) {
+    lines.push("  Domains");
+    for (const d of r.domains.records) {
+      const serves = d.serves ? ` | serves ${d.serves.error ? `nothing (${d.serves.error})` : `${d.serves.httpStatus} "${clip(d.serves.title ?? "no title", 60)}" at ${d.serves.finalUrl}`}${d.serves.parkingSigns?.length ? ` | parking signs: ${d.serves.parkingSigns.join(", ")}` : ""}` : "";
+      const facts = d.status === "registered" ? ` since ${day(d.created) ?? "an unknown date"} through ${d.registrar ?? "an unlisted registrar"}` : "";
+      lines.push(`    ${d.domain} | ${d.status}${facts} | ${d.source ?? "no source"}${serves}${d.error ? ` | ${d.error}` : ""}${d.note ? ` | ${d.note}` : ""}`);
+    }
+    for (const group of r.domains.registeredTogether ?? []) lines.push(`    Registered within a minute of each other: ${group.join(", ")}`);
+  }
+  if (r.history) {
+    lines.push("  History, Internet Archive");
+    for (const h of r.history.records) {
+      if (h.error) lines.push(`    ${h.domain} | not run: ${h.error}`);
+      else if (!h.monthsCaptured) lines.push(`    ${h.domain} | no captures`);
+      else {
+        lines.push(`    ${h.domain} | captured in ${h.monthsCaptured} ${h.monthsCaptured === 1 ? "month" : "months"}, ${h.first} to ${h.last} | earlier owner: ${h.earlierOwner === null ? "cannot tell" : h.earlierOwner ? "yes" : "no"} | open these:`);
+        for (const o of h.open) lines.push(`      ${o.url}${o.status === "200" ? "" : ` (answered ${o.status})`}`);
+      }
+    }
+  }
+  if (r.marks) {
+    lines.push(`  Marks, USPTO word marks. ${classes.length ? `The first two lists cover every class. The four after them cover only class ${classes.join(", ")}` : "Every list covers every class"}`);
+    marksLines(lines, r.marks, opts, classes);
+  }
+  if (r.stores) {
+    lines.push("  Stores");
+    storeLines(lines, r.stores);
+  }
+  if (r.code) {
+    lines.push("  Code");
+    if (r.code.ran === false) lines.push(`    not run: ${r.code.error}`);
+    for (const registry of ["npm", "pypi", "crates"]) {
+      const p = r.code[registry];
+      if (p && !p.error) lines.push(`    ${registry} | ${p.exists ? `taken, latest ${p.latest}, ${p.published ?? p.updated ?? "no date"}, ${clip(p.description ?? "no description", 70)}${p.downloadsLastMonth != null ? `, ${p.downloadsLastMonth} downloads last month` : ""}${p.downloads != null ? `, ${p.downloads} downloads` : ""}` : "no package of this name"}`);
+    }
+    const repos = r.code.githubRepositories;
+    if (repos && !repos.error) {
+      lines.push(`    GitHub repositories | ${repos.exactName} with this very name among the top results, ${repos.total} matching loosely`);
+      for (const repo of repos.repositories.slice(0, opts.top)) lines.push(`      ${repo.name} | ${repo.stars} stars | created ${repo.created} | pushed ${repo.pushed}${repo.archived ? " | archived" : ""} | ${clip(repo.description ?? "no description", 70)} | ${repo.url}`);
+    }
+    if (r.code.githubAccount && !r.code.githubAccount.error) lines.push(`    GitHub account | ${r.code.githubAccount.taken ? `taken, ${r.code.githubAccount.url}` : "free"}`);
+  }
+  for (const entry of r.forms ?? []) {
+    lines.push(`  Form "${entry.form}"`);
+    marksLines(lines, entry.marks, opts, classes, { formOf: entry.form });
+    storeLines(lines, entry.stores);
+  }
+  lines.push("  Yours to run");
+  for (const y of r.yours ?? []) lines.push(`    ${y.step} | ${y.query ?? y.url}${y.when ? ` | ${y.when}` : ""}`);
+  return lines.join("\n");
 }
 
 async function main() {
@@ -975,6 +1278,10 @@ async function main() {
     while (next < opts.specs.length) {
       const index = next++;
       const spec = opts.specs[index];
+      if (opts.read) {
+        results[index] = rows.get(keyOf(spec.name)) ?? { name: spec.name, notInFile: true, failed: [], notRun: [...DEFAULT_SECTIONS] };
+        continue;
+      }
       const { result, looked } = await lookupName(spec, opts, rows.get(keyOf(spec.name)));
       results[index] = result;
       rows.set(keyOf(spec.name), result);
@@ -986,11 +1293,19 @@ async function main() {
   };
   await Promise.all(Array.from({ length: Math.min(3, opts.specs.length) }, worker));
   const incomplete = results.filter((r) => r.failed.length || r.notRun.length);
-  if (opts.out) {
-    save();
-    process.stdout.write(JSON.stringify({ wrote: opts.out, namesInFile: rows.size, namesThisRun: results.length, alreadyComplete: reused, incomplete: incomplete.map((r) => ({ name: r.name, failed: r.failed, notRun: r.notRun })) }) + "\n");
-  } else {
+  if (opts.out && !opts.read) save();
+  if (opts.json) {
     process.stdout.write(results.map((r) => JSON.stringify(r)).join("\n") + "\n");
+  } else {
+    const kept = opts.out ? `Full records: ${opts.out}, one JSON line per name.${opts.read ? "" : " Add --read to print from it without looking anything up."} --top <n> shows more of a list.` : "Full records were not kept. Add --out <path> to keep them, or --json to print them.";
+    const out = [`Records, not verdicts. Open a mark at https://tsdr.uspto.gov/statusview/sn<serial>. ${kept}`, ""];
+    if (opts.out && !opts.read && results.length > 5) {
+      for (const r of results) out.push(`${r.name} | ${r.failed.length || r.notRun.length ? `INCOMPLETE: ${[...r.failed.map((f) => `failed ${f}`), ...r.notRun.map((n) => `not run ${n}`)].join(", ")}` : "complete"}`);
+      out.push("", `${results.length} names this run, ${reused} already complete, ${rows.size} in the file. Print a name's summary with: <name> --out ${opts.out} --read`);
+    } else {
+      out.push(results.map((r) => summarize(r, opts)).join("\n\n"));
+    }
+    process.stdout.write(out.join("\n") + "\n");
   }
   if (incomplete.length) {
     process.stderr.write(`Incomplete: ${incomplete.map((r) => `${r.name} (${[...r.failed.map((f) => `failed ${f}`), ...r.notRun.map((n) => `not run ${n}`)].join(", ")})`).join(", ")}\n`);

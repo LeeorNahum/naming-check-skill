@@ -4,7 +4,7 @@ How each finding gets its weight. The weights run Note, Cost, Question, Blocks, 
 
 ## Closeness Of Two Names
 
-Write both names out as buyers would most naturally say them, syllable by syllable, and count the vowel and consonant sounds that differ. Compare by sight, by sound, and by meaning.
+Write both names out as they are said, syllable by syllable, and count the vowel and consonant sounds that differ. The name being checked is said the way the brief records. Compare by sight, by sound, and by meaning.
 
 - **Same name:** Identical in letters, or identical in sound under a natural reading, ignoring spaces, hyphens, and capitals. The name with a descriptor before or after it is the same name. A descriptor is a separate ordinary word that says what the thing is, not letters inside one coined word
 - **Near by sight:** One or two letters apart (one, for a name of four letters or fewer), or the same letters in another order
@@ -13,11 +13,11 @@ Write both names out as buyers would most naturally say them, syllable by syllab
 
 Two names that share only an ordinary word, a category word, or a trade term are not near, however many letters that word gives them in common. Set the shared word aside, and they are near only if the whole names are still one sound apart. A match whose own name is an ordinary word describing the product or its category gives a near name no weight. Only the same name does.
 
-For a product match, closeness counts in the sense the brief's encounter uses. A name that will mostly be said aloud is near what sounds like it. A name that will mostly be seen or tapped is near what looks like it. When a name is said aloud and then typed from memory, sound decides, because people type what they heard. A pair that is close in one sense and plainly different in the one that matters is not near.
+For a product match, closeness counts in the sense the brief's encounter uses. A name that will mostly be said aloud or typed from memory is near what sounds like it. A name that will mostly be seen or tapped is near what looks like it. When the brief names more than one, sound decides. A pair that is close in one sense and plainly different in the one that matters is not near.
 
-For a trademark, any sense counts, because offices and courts compare sight, sound, and meaning, and closeness in one can be enough. A real difference in another sense is recorded and lowers the exposure. How the owner or the person means the name to be said settles nothing, because buyers say names their own way.
+For a trademark, any sense counts, because offices and courts compare sight, sound, and meaning, and closeness in one can be enough. A real difference in another sense is recorded and lowers the exposure. For sound, the office treats no one pronunciation of a mark as the correct one, because nobody can predict how the public will say it. This check compares sound under one reading only, the one in the brief, so it can understate closeness in sound. The finding says which reading was used. Whenever the size turns on that reading, whether assumed or the person's own, the finding says so and says that an office may hear the name another way.
 
-Anything further off than near is not a match and is not reported as one. The one exception is an ordinary word the name shares with a mark, which has its own section below.
+Closeness is measured from the name itself, never from one of its forms. Anything further off than near is not a match and is not reported as one. The one exception is an ordinary word the name shares with a mark, which has its own section below.
 
 ## Products And Businesses
 
@@ -86,7 +86,7 @@ Being in use does not protect a name from a mark that was filed or used earlier.
 Every Question on a trademark carries its exposure, as eight facts and a size:
 
 - **Sight:** How many letters apart
-- **Sound:** How each is said and how many sounds apart
+- **Sound:** How each is said, with the reading used for the name being checked, and how many sounds apart
 - **Meaning:** Whether the two mean or suggest the same thing
 - **Goods:** The mark's listed goods beside what the product does
 - **Upkeep and use:** The mark's registration date, its upkeep filings and the next one due, and what its owner sells under it now, as the next section sets out

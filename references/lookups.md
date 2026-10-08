@@ -4,16 +4,16 @@ How to run each step of the full check by hand, what each answer does and does n
 
 ## When The Script Fails Or Cannot Run
 
-- A section with `ran` false did not happen. It is not a clear result. Rerun that name with `--only <section>`, or take the route for that step below
+- A section the summary marks `not run`, which is `ran` false in the full records, did not happen. It is not a clear result. Rerun that name with `--only <section>` and the same `--out` file, or take the route for that step below
 - A section that reports being refused clears after about ten minutes. Run one copy of the script at a time and let it pace itself
-- A row with anything under `failed` or `notRun` is incomplete. Clear both before using it
-- A trademark list with `searchedAll` false is partial, and the Trademarks step has not run until it is whole. Give `--classes` if it was not given. For `containing`, a `containingInClasses` entry with `searchedAll` true completes it. If a list is still partial, query the office for that word yourself
+- A name the summary marks `INCOMPLETE` has something under `failed` or `notRun`. Clear both before using it
+- A trademark list marked `PARTIAL`, which is `searchedAll` false, is missing live marks, and the Trademarks step has not run until it is whole. Give `--classes` if it was not given. For `containing`, a `containingInClasses` entry with `searchedAll` true completes it. If a list is still partial, query the office for that word yourself. Dead marks left unread do not make a list partial. For a form that is an ordinary word, read only the marks in the product's classes, and say so in the `Lookups` list
 - The pages under `yours` are written for an English-language app, and each says when it applies. For another language or field, use the routes below
-- Without the script, build the same lookups by hand: the six searches in the Search step, and the routes below for the rest
+- Without the script, build the same lookups by hand: the five searches in the Search step, with the respellings made by the swaps the skill lists, and the routes below for the rest
 
 ## Search
 
-- When the search tool returns a generated summary and not the results themselves, fetch a search engine's results page as an ordinary web page with the query in its address, and read the entries
+- When the search tool returns a generated summary and not the results themselves, fetch a search engine's results page as an ordinary web page with the query in its address, and read the entries. A summary that comes with the list of results, about ten titles with their links, has the results: read the list. The summary itself is never evidence, whichever way it arrives
 - The same route is worth trying when a search allowance runs out, though search engines often refuse it. A fetched results page is a search like any other, so name the engine in the `Lookups` list. When neither works, the search step cannot run and the name is unfinished
 - When the market's language is not English, write the category words and the four adverse words in that language in place of the English ones, and search from that market's version of the engine, because local uses rank locally
 - When a result page or an article refuses the request, try an archived copy of it. A page that refuses a fetch tool, including the archive itself, a registry status page, or a store page, often loads through a plain HTTP request from a shell
@@ -27,9 +27,9 @@ Search where a competitor of this product would be listed.
 | --- | --- |
 | App or software | Apple's App Store and Mac App Store, Google Play at `https://play.google.com/store/search?q=<name>&c=apps`, the Microsoft Store and browser extension stores when it runs there, the product launch directory its buyers read, and the package registries and code hosts when it is a developer tool |
 | Physical goods | The dominant shopping marketplace of each market, and the craft or specialist marketplace of the category |
-| Venue, food, or local service | The map listing for the name in the city or region of the brief, the main review site there, and the company register of the jurisdiction |
+| Venue, food, or local service | The map listing for the name in the city or region of the brief, and the main review site there |
 | Music, books, film, games, podcasts | The catalog where that kind of work is published, sold, or streamed |
-| Company name | The company register of each jurisdiction in the brief |
+| Company name | Wherever companies of its trade are listed, as in the rows above. Its register is a lookup of its own, under Company Registers below |
 
 When the script's Apple lookup is refused, fetch `https://apps.apple.com/<country>/iphone/search?term=<name>` as a page. A store page that will not load through a fetch tool often loads through a plain HTTP request from a shell.
 
@@ -66,12 +66,12 @@ Reading a result:
 
 - **Live or dead decides first:** Registered and pending marks are live, and an application that has only had a first refusal is still pending. Abandoned, cancelled, expired, and finally refused marks are dead and weigh as notes. A registration can be live with some of its classes cancelled, so read the status page of a mark that matters
 - **Goods and services decide next:** A mark covers what its record lists. A live mark for unrelated goods is not a mark on this product
-- **Near marks count by sight and by sound:** Offices compare how marks look, sound, and what they mean, and closeness in one can be enough. The script's `near` list is close in spelling and its `soundNear` list is close to a same-sound respelling. A short name returns hundreds. Say each one in the product's classes aloud against the name and keep those that look or sound like it
-- **Marks built on the name are a list of their own:** The script's `builtOn` list holds live marks with a longer word that starts or ends with the whole name, such as the name with a grade or a product word added. Read the ones that are a single word and whose goods touch the product. Where the name begins an ordinary word, most of that list is that word and can be passed over
+- **Near marks count by sight and by sound:** Offices compare how marks look, sound, and what they mean, and closeness in one can be enough. The script's `near` list is close in spelling and its `soundNear` list is close to a same-sound respelling. Both hold live and dead marks, nearest first. A short name returns hundreds. Compare each live whole mark in the product's classes with the name and keep those that are near it by the closeness rules. The summary shows the first few and gives the `--top` number that shows them all. A longer mark that only holds a near word is read only where that word is the heart of the mark
+- **Marks built on the name are a list of their own:** The script's `builtOn` list holds marks with a longer word that starts or ends with the whole name, such as the name with a grade or a product word added. Read the ones that are a single word and whose goods touch the product. Where the name begins an ordinary word, most of that list is that word and can be passed over
 - **The lists have holes:** A mark that sounds alike and is spelled further off, a mark more than two letters away, and a mark sharing only the stem are in neither list. The stem search and the store search are where those turn up, and a name found there gets its own registry query
 - **The owner's record is one page:** The office's trial board lists every proceeding an owner has been party to at `https://ttabvue.uspto.gov/ttabvue/v?pnam=<owner name>`. For an owner with hundreds, `https://ttabvue.uspto.gov/ttabvue/v?qs=<owner>+<word>` finds the records holding both words. Count those it started against other names, and note any against close spellings. It shows how likely the owner is to object. It does not change what the owner's rights are, and it shows registry disputes only
 - **Dates decide who was first:** Record the mark's filing date and its claimed first-use date, both on the status page, beside the person's own first use
-- **Upkeep is on the status page:** It shows the registration date, each declaration of use and renewal the owner has filed, and whether it was accepted. The script works out the dates the next filing opens and its grace period ends, under `upkeep`. To see whether the owner still sells under the mark, open the owner's own site and the stores, and record the page and date
+- **Upkeep is on the status page:** It shows the registration date, each declaration of use and renewal the owner has filed, and whether it was accepted. The script works out when the next filing falls due, which the summary shows, and the dates its window opens and its grace period ends, under `upkeep` in the full records. To see whether the owner still sells under the mark, open the owner's own site and the stores, and record the page and date
 - **This is a knockout search:** It catches the marks that are plainly in the way. It does not cover unregistered rights from use, every sound-alike, or every jurisdiction
 
 ## Domains
@@ -99,12 +99,28 @@ Reading a result:
 - A language widely spoken in a market counts even when the product is sold in another one
 - A name that is a common first name, surname, or place somewhere in the brief's markets is worth a note, because that is what search will return there
 
+## Company Registers
+
+For a brief that gives a legal entity name or a place of formation. The register is the list of companies kept by that state or country, usually by its secretary of state, treasury, or companies office. Find it by the place's name and use the office's own site.
+
+- **Search the name without its ending,** such as LLC or Inc., and read every entity whose name is the same or near by the closeness rules. Many registers match only what is typed, letter for letter and space for space, so search the spaced form and the name's first letters as well
+- **Use the availability look-up where the register has one,** and its entity search too. The first says whether the name can be filed. The second shows who holds the names around it
+- **`Available` means the register's search showed nothing in the way on that date.** What stands in the way is set by that place's law, and it is commonly two things. The name has to be distinguishable on the register from the names it protects: usually the entities formed there, outside entities registered to do business there, and reserved names. And it has to carry the ending required for its kind of company, such as "LLC" for a limited liability company. Each office decides what counts as distinguishable, so read its rule before treating another ending, a capital, or a comma as a difference
+- **It means nothing more.** The office decides when the papers are filed, not when the look-up is run, and many registers will reserve a name for a fee where holding it matters. A register compares its own entities only: not another place's, not trademarks, not a business trading without an entity. Some list active and inactive entities together and do not say which is which
+- **An entity under the same or a near name** shows that it exists, not that it trades. When its trade could be in or near the niche, open it as a match in the Matches step
+
+Routes, in order:
+
+1. The register's own search. Some registers forbid automated searches or ask for a typed code. Those are the person's to run, and the lookup is `Open` until they report what it showed
+2. A third-party index of company records, such as OpenCorporates at `https://opencorporates.com/companies/<jurisdiction code>?q=<name>`. Report what it shows as the index's answer and not the register's, with its freshness unknown: an index copies a register on its own schedule, so a company formed last month may be missing from it. Whatever it shows, the lookup stays `Open`
+3. With no answer from the register, give the person its link and the exact terms to enter, with whatever the index showed
+
 ## Accounts
 
 Accounts are claimed at adoption and are not a step of the check. To see whether one is free, fetch the profile address for the exact handle: a missing-page answer usually means free, and a profile page means taken. Many platforms show nothing without signing in, so the person confirms those themselves. An active account in the product's niche turns up in the Search and Marketplaces steps, where it is weighed as a match.
 
 ## Without Web Access
 
-No clearance verdict is possible, so every name is unchecked. Give the fit results, which need no lookup, and record the listener as yourself.
+No clearance verdict is possible, so every name is unchecked. Give the fit results, each with the line saying what the name is, which need no lookup.
 
-The person can run the lookups themselves. Give them every one, for the names they choose, with the queries and links filled in: the six searches, the store or directory of their field, the trademark office of each market for the name and its forms, each domain at a registrar, the archive list for each domain, and the dictionary page for each form. Record what they bring back as facts. A name is checked when every step has an answer, whoever ran it, and not before. A few lookups are not the check, and they do not produce a verdict.
+The person can run the lookups themselves. Give them every one, for the names they choose, with the queries and links filled in: the five searches, the store or directory of their field, the trademark office of each market for the name and its forms, each domain at a registrar, the archive list for each domain, and the dictionary page for the name and each of the person's spellings. Record what they bring back as facts. A name is checked when every step has an answer, whoever ran it, and not before. A few lookups are not the check, and they do not produce a verdict.
