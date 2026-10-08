@@ -1,0 +1,15 @@
+{
+  "name": "naming-check",
+  "version": "2.0.0",
+  "description": "Registry lookups for the naming-check Agent Skill.",
+  "type": "module",
+  "bin": {
+    "naming-check": "scripts/lookup.mjs"
+  },
+  "files": [
+    "scripts/lookup.mjs"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
