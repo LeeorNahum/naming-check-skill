@@ -1,10 +1,10 @@
 # Weighing What Was Found
 
-How each finding gets its weight. The weights run Note, Cost, Question, Blocks, lightest first, and "one level lighter" means one step down that ladder, except for a Question on a trademark, which has sizes and steps down one size first. Four facts decide most of it, and every product or trademark finding states all four: how close the names are, how close the niche or the goods are, how much reach the match has, and who was first.
+How each finding gets its weight. The weights run Note, Cost, Question, Blocks, lightest first, and "one level lighter" means one step down that ladder, except for a Question on a trademark or a product, which has sizes and steps down one size first. Four facts decide most of it, and every product or trademark finding states all four: how close the names are, how close the field or the goods are, how much reach the match has, and who was first.
 
 ## Closeness Of Two Names
 
-Write both names out as they are said, syllable by syllable, and count the vowel and consonant sounds that differ. The name being checked is said the way the brief records. Compare by sight, by sound, and by meaning.
+Write both names out as they are said, syllable by syllable, and count the vowel and consonant sounds that differ. The name being checked is said the way the goal records. Compare by sight, by sound, and by meaning.
 
 - **Same name:** Identical in letters, or identical in sound under a natural reading, ignoring spaces, hyphens, and capitals. The name with a descriptor before or after it is the same name. A descriptor is a separate ordinary word that says what the thing is, not letters inside one coined word
 - **Near by sight:** One or two letters apart (one, for a name of four letters or fewer), or the same letters in another order
@@ -13,32 +13,34 @@ Write both names out as they are said, syllable by syllable, and count the vowel
 
 Two names that share only an ordinary word, a category word, or a trade term are not near, however many letters that word gives them in common. Set the shared word aside, and they are near only if the whole names are still one sound apart. A match whose own name is an ordinary word describing the product or its category gives a near name no weight. Only the same name does.
 
-For a product match, closeness counts in the sense the brief's encounter uses. A name that will mostly be said aloud or typed from memory is near what sounds like it. A name that will mostly be seen or tapped is near what looks like it. When the brief names more than one, sound decides. A pair that is close in one sense and plainly different in the one that matters is not near.
+A near-name finding says whether a person could plausibly confuse the two names and the two products, by sight, by sound, and by what each is for. When they could not, the finding is minor, a Note, and any legal question it raises is still named for a trademark professional.
 
-For a trademark, any sense counts, because offices and courts compare sight, sound, and meaning, and closeness in one can be enough. A real difference in another sense is recorded and lowers the exposure. For sound, the office treats no one pronunciation of a mark as the correct one, because nobody can predict how the public will say it. This check compares sound under one reading only, the one in the brief, so it can understate closeness in sound. The finding says which reading was used. Whenever the size turns on that reading, whether assumed or the person's own, the finding says so and says that an office may hear the name another way.
+For a product match, closeness counts in the sense the goal's encounter uses. A name that will mostly be said aloud or typed from memory is near what sounds like it. A name that will mostly be seen or tapped is near what looks like it. When the goal names more than one, sound decides. A pair that is close in one sense and plainly different in the one that matters is not near.
+
+For a trademark, any sense counts, because offices and courts compare sight, sound, and meaning, and closeness in one can be enough. A real difference in another sense is recorded and lowers the exposure. For sound, the office treats no one pronunciation of a mark as the correct one, because nobody can predict how the public will say it. This check compares sound under one reading only, the one in the goal, so it can understate closeness in sound. The finding says which reading was used. Whenever the size turns on that reading, whether assumed or the person's own, the finding says so and says that an office may hear the name another way.
 
 Closeness is measured from the name itself, never from one of its forms. Anything further off than near is not a match and is not reported as one. The one exception is an ordinary word the name shares with a mark, which has its own section below.
 
 ## Products And Businesses
 
-Give the match a niche and a reach, then read the weight.
+Give the match a field and a reach, then read the weight.
 
 | | Real reach | Small reach | No reach shown |
 | --- | --- | --- | --- |
-| **Same niche, same name** | Blocks | Question | Cost, and the person is told to look again in 90 days |
-| **Same niche, near name** | Question | Cost | Note |
-| **Adjacent niche, same name** | Cost | Note | Note |
-| **Adjacent niche, near name,** or any unrelated field | Note | Note | Note |
+| **Same field, same name** | Blocks | Question | Cost, and the person is told to look again in 90 days |
+| **Same field, near name** | Question | Cost | Note |
+| **Adjacent field, same name** | Cost | Note | Note |
+| **Adjacent field, near name,** or any unrelated field | Note | Note | Note |
 
-The same niche means it does the job in the brief, even if only for part of the brief's buyers, and for a local business, where the same customers could choose it. An adjacent niche is one where a buyer could compare the two or assume one maker.
+The same field means it does the job in the goal, even if only for part of the goal's buyers, and for a local business, where the same customers could choose it. An adjacent field is one where a buyer could compare the two or assume one maker.
 
-Reach is how much the match is used beside its own field, for how long it has been out. A count means nothing alone: a figure that is large in one niche is a rounding error in another, and the same figure reads differently on a product three months old and one six years old.
+Reach is how much the match is used beside its own field, for how long it has been out. A count means nothing alone: a figure that is large in one field is a rounding error in another, and the same figure reads differently on a product three months old and one six years old.
 
 Gather three things, and put all three in the finding with the date read:
 
 - **Its number:** A dated sign that people other than its maker use or pay for it under this name, on a measure the place also shows for its neighbors: ratings or reviews, installs or downloads, stars from other accounts, paying customers. Its maker's funding, its own claims, and use under an earlier name do not count
 - **Its time out:** The date it was first released or listed under this name
-- **The field:** In the same store or listing place, search the brief's first category word and take the first ten results other than the match and the person's own product. Read the same measure and the release date for each
+- **The field:** In the same store or listing place, search the goal's first category word and take the first ten results other than the match and the person's own product. Read the same measure and the release date for each
 
 Then compare pace, which is the number divided by the years out. Count anything out less than six months as out six months, so that a launch week does not read as a trend. Work out the pace of each of the ten, put them in order, and take the average of the fifth and sixth as the typical pace. The largest is the leader.
 
@@ -61,19 +63,19 @@ A match that is dormant or dead weighs as a note in every cell: archived, withdr
 Two things move a product match one level lighter, never below a note, and when both hold it moves one level, not two:
 
 - **It came after the person, and something shows it.** For a name already in use, a match that started after the person's first public use is the later comer, when a dated record shows the person's date: an archived copy, a store release, a receipt, a public post. A date that is only stated moves no weight. The finding records it and says what proof to save
-- **Buyers in the brief's markets cannot get it.** A product sold or listed only in a country outside the brief matters for expansion and not for launch. A product sold online with no country limit reaches every market
+- **Buyers in the goal's markets cannot get it.** A product sold or listed only in a country outside the goal matters for expansion and not for launch. A product sold online with no country limit reaches every market
 
 Why an earlier product matters even when it is small: whoever used a name first for a kind of product holds rights from that use where it trades, registered or not, and can object if the person later files to register the name. With no reach shown it is a cost to watch, and the `To use it` entry says to mention it to whoever files the person's own mark.
 
-A Question on a product takes its size from where it came from. A same name in the same niche with small reach is small. A near name in the same niche with real reach is moderate. A match that would have blocked and is one level lighter, because it came after the person or cannot be bought in the brief's markets, is large.
+A Question on a product takes its size from where it came from. A same name in the same field with small reach is small. A near name in the same field with real reach is moderate. A match that would have blocked and is one level lighter, because it came after the person or cannot be bought in the goal's markets, is large.
 
 ## Trademarks
 
-These rules follow United States trademark law as the statute and the office's examining manual set it out. Other countries differ in detail, and many give rights to whoever files first. They are a guide to gathering facts and sizing exposure, not a legal opinion, and the answer to every question below is a trademark professional's.
+These rules follow United States trademark law as the statute and the office's examining manual set it out. Other countries differ in detail, and many give rights to whoever files first. For the European Union, the United Kingdom, or any other office, what a finding usually means comes from that office's own published guidance, read during the run. Where none was read, the result says only that a mark there is a question for a professional in that market. These rules are a guide to gathering facts and sizing exposure, not a legal opinion, and the answer to every question below is a trademark professional's.
 
 Whether a mark stands in the way turns mainly on two things taken together: how similar the two names are in sight, sound, and meaning, and how related the goods or services are. The more alike the names, the less related the goods need to be, and the reverse. Goods are related when the same buyers would use them together or take them to come from one maker. The same name can be registered by different owners for unrelated goods, and two software products in the same class can be unrelated. When two products are sold to the same kind of buyer and it is in doubt whether they are related, treat them as related. The office judges goods as the registration lists them. A court also looks at how the two are really sold.
 
-- **Blocks:** A live registered mark that is the same name, whose listed goods include what the product does, in a market of the brief, with a filing or first-use date before the person's own shown first use, or with no first use shown, and that weighs in full under the next section
+- **Blocks:** A live registered mark that is the same name, whose listed goods include what the product does, in a market of the goal, with a filing or first-use date before the person's own shown first use, or with no first use shown, and that weighs in full under the next section
 - **Question:** A live mark or application that falls short of that and could still stand in the way:
   - A near mark whose goods include what the product does, or are related to it
   - A same-name application of the blocking kind, or a same-name mark for related goods
@@ -103,6 +105,18 @@ Size the exposure in this order:
 
 The `To use it` entry names the size, gives the facts on both sides, and says what answer to get. For large exposure it says to get that answer before going further with the name.
 
+## What A Finding Usually Means
+
+Each finding is written with what it usually means for the person and what to do, as what usually happens and never as a promise. The shapes below are for the United States. Fill each with the facts found.
+
+- **A Blocks mark:** The trademark office would usually refuse the person's own filing because of the earlier registration, and the owner could tell them to stop or sue. Drop the name, or change the fact: buy the mark, get the owner's written consent, or have it cancelled where the grounds exist, which is a trademark professional's call
+- **A Question mark:** It could stand in the way, and only the owner or an examiner can say. The office may refuse a filing, and the owner may object. Get one answer from a trademark professional before spending on filing, launch, or marketing, and the size says how much rides on it
+- **A kept-up mark that is large:** The same consequence as a block, with one open point. Get the answer first
+- **A mark nobody keeps up:** It still stands until it is cancelled or lapses, so the office may still refuse a filing. The consequence is a wait or a formal proceeding, with the date that matters
+- **An earlier product with no registration:** Its maker may hold rights from using the name first where it trades, and could object if the person files. Mention it to whoever files, and look again in 90 days where it is new
+- **A Note on a live mark:** Usually nothing now. Tell whoever files the person's own registration
+- **A crowded field:** Buyers learn to tell similar names apart, so the shared word protects less and a share of it is usually fine. The distinct part is what to keep clear of
+
 ## Whether A Mark Is Kept Up
 
 A registration is not a permanent fact. In the United States it has to be kept alive by filings that swear the mark is still in use, and it can be cancelled when it is not. So for every registered mark that could weigh more than a note, gather and show:
@@ -120,7 +134,7 @@ How these move the weight:
 - **Live on paper, and nothing found sold under it for three years or more:** One level lighter. Three years of nonuse is, in the statute's words, prima facie evidence that a mark has been abandoned. The owner can answer it by showing it means to resume, and whoever challenges the mark has to prove the case. A search that finds nothing is not enough for this step. It takes the owner's own pages, or archived copies of them, showing no offer under the mark, since a mark can be used through licensees or in trade a search does not reach, and a declaration of use the office accepted in the last few years counts against the inference until the proof filed with it has been read
 - **Too young for any filing,** under five years: nothing to read from upkeep yet. It weighs in full when the owner sells under it, and also when it is under three years old, since no nonuse can be inferred yet. Between three and five years old with nothing sold under it, the line above applies
 
-One level lighter is applied once, however many of these lines fit. A mark that would have blocked becomes a Question of large exposure, and the sizing order does not step it down again for the same reason. A Question steps down one size. A Question that is already small has no smaller size to step to, so it becomes a Cost: the mark is named in the footnote with the date its filing falls due, and it is mentioned to whoever files the person's own registration. Nothing else turns a Question into a Cost. While a mark is kept up and sold under, small is as low as it goes.
+One level lighter is applied once, however many of these lines fit. A mark that would have blocked becomes a Question of large exposure, and the sizing order does not step it down again for the same reason. A Question steps down one size. A Question that is already small has no smaller size to step to, so it becomes a Cost: the mark is named in the footnote with the date its filing falls due, and it is mentioned to whoever files the person's own registration. Nothing else turns a Question into a Cost, except the product rule that moves a match one level lighter. While a mark is kept up and sold under, small is as low as it goes.
 
 What it would take to clear a mark nobody keeps up: wait for the missed deadline to cancel it, or have a trademark professional ask the office to cancel it. That is a formal proceeding with fees, usually with counsel, and it can run a year or more. Buying the mark or agreeing terms with its owner is the other route. The grounds differ and are a professional's to choose: abandonment can be raised at any age of the registration, a registration never used for some of its goods can be challenged between three and ten years after it registered, and a use-based one within its first five years. After five years a registration can no longer be cancelled just because someone else used the name first or finds it confusingly close. Until a mark is cancelled it still stands, and the office will still refuse a too-similar application because of it, whether or not its owner ever acts. The `To use it` entry says which route applies and the date that matters.
 
@@ -145,8 +159,9 @@ A name often starts with, or shares, an ordinary word that someone holds as a ma
 
 ## The Other Findings
 
-- **Domain:** A parked, squatted, or for-sale domain is a purchase negotiation, and an operating business on it is a product match to weigh above. Domain state never weighs more than a cost. When at least one address the brief accepts is free, it is a note. When every accepted address is registered, it is a cost: the asking price where one can be read, and otherwise a price to ask for, another suffix, or a modified address. A set of suffixes one party registered at the same moment and has not built on is a note. When the brief needs no address, domain state is always a note
+- **Domain:** A parked, squatted, or for-sale domain is a purchase negotiation, and an operating business on it is a product match to weigh above. Domain state never weighs more than a cost. When at least one address the goal accepts is free, it is a note, and its registration price is part of the finding. When every accepted address is registered, it is a cost: the asking price where one can be read, and otherwise a price to ask for, another suffix, or an address that contains the name, each with its own price. A set of suffixes one party registered at the same moment and has not built on is a note. When the goal needs no address, domain state is always a note
 - **History and adverse claims:** A claim about this name or its domain, whoever held it then, that is still true or still on the first page of the name's results is a cost. One that is old and no longer surfacing is a note
-- **Meaning:** A vulgar, hostile, or embarrassing sense found by looking the name up is a cost. It blocks when it is the first thing a buyer in a market of the brief finds on looking up what the name means. A harmless sense that merely sits oddly with the product is a note
+- **Company register:** It does not weigh, except for a goal that makes the company name the thing being named. Then `Not available` is a block and `Open` is a missing answer, never a clear result
+- **Meaning:** A vulgar, hostile, or embarrassing sense that a dictionary lists for the name itself is a cost. A name that only sounds like such a word is the agent's sound flag and is never weighed. It blocks when it is the first thing a buyer in a market of the goal finds on looking up what the name means. A harmless sense that merely sits oddly with the product is a note
 - **Search ownership:** An unrelated owner so dominant that the product could not surface for its own name, even with its category word added, is a cost
-- **Genericness:** A term that is descriptive or commonplace in the product's own field is harder to rank, defend, and tell apart. That is a cost the owner may knowingly accept, never a block by itself. Context can collapse ambiguity: a phrase generic in ordinary language can still be owned inside one field. A term commonplace only in some other field is a note. Genericness blocks only together with an observed fact: products with real reach in the same niche that are themselves named with the term
+- **Genericness:** A term that is descriptive or commonplace in the product's own field is harder to rank, defend, and tell apart. That is a cost the owner may knowingly accept, never a block by itself. Context can collapse ambiguity: a phrase generic in ordinary language can still be owned inside one field. A term commonplace only in some other field is a note. Genericness blocks only together with an observed fact: products with real reach in the same field that are themselves named with the term

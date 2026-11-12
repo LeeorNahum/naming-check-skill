@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Registry lookups for the naming-check full check: domains, domain history,
-// US trademarks, the Apple app stores, and code registries.
+// Registry lookups for naming-check: domains with their price, domain history,
+// US trademarks, the Apple app stores, dictionary entries, and code registries,
+// plus web, EU trademark, and UK company lookups when their keys are set.
 // Zero dependencies. Node.js 18 or later. Prints a short summary per name and
 // keeps the full records, one JSON object per name, behind --out or --json.
 
@@ -9,16 +10,33 @@ import { resolveNs } from "node:dns/promises";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { domainToASCII } from "node:url";
 
-const SECTIONS = ["domains", "history", "marks", "stores", "code"];
-const DEFAULT_SECTIONS = ["domains", "history", "marks", "stores"];
+const SECTIONS = ["domains", "history", "marks", "stores", "words", "code", "web", "euipo", "companies"];
+const DEFAULT_SECTIONS = ["domains", "history", "marks", "stores", "words"];
+
+// Every key is optional and read from the environment. A value is never printed or written to a record.
+// A section in KEYED runs only when every variable of its group is set, and says so when it is not.
+const KEYS = {
+  cloudflare: ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+  porkbun: ["PORKBUN_API_KEY", "PORKBUN_SECRET_API_KEY"],
+  web: ["BRAVE_SEARCH_API_KEY"],
+  euipo: ["EUIPO_CLIENT_ID", "EUIPO_CLIENT_SECRET"],
+  companies: ["COMPANIES_HOUSE_API_KEY"],
+};
+const KEYED = ["web", "euipo", "companies"];
+const env = (variable) => process.env[variable]?.trim() || null;
+const hasKeys = (group) => KEYS[group].every(env);
+const missingKeys = (group) => KEYS[group].filter((variable) => !env(variable));
 const UA = "naming-check-lookup (+https://github.com/LeeorNahum/naming-check-skill)";
 
 const HELP = `Usage: node scripts/lookup.mjs <name>... [options]
        npx --yes github:LeeorNahum/naming-check-skill <name>... [options]
 
-Runs the registry lookups of the naming-check full check and prints a short
-summary per name. The full records, one JSON object per name, go to the --out
-file or are printed with --json. It reports records. It gives no verdict.
+Runs the registry lookups of naming-check and prints a short summary per name:
+domains with their price, domain history, United States trademarks, the Apple
+app stores, and dictionary entries, with code registries on request and web
+search, European Union trademarks, and UK companies when their keys are set.
+The full records, one JSON object per name, go to the --out file or are
+printed with --json. It reports records. It gives no verdict.
 
 A name can carry other forms: its spaced form, and spellings its owner says
 people use for it:
@@ -40,8 +58,11 @@ Options:
                      9,42. Marks in these classes are flagged and listed first
   --country <code>   Apple storefront, two letters (default: us)
   --only <list>      Sections to run: ${SECTIONS.join(", ")}
-                     (default: ${DEFAULT_SECTIONS.join(", ")})
-  --code             Add the code section (npm, PyPI, crates.io, GitHub)
+                     (default: ${DEFAULT_SECTIONS.join(", ")}, plus each of web,
+                     euipo, and companies whose key is set. Naming one of those
+                     with no key set is a failed lookup)
+  --code             Add the code section (npm, PyPI, crates.io, GitHub). Use it
+                     when the product is software or a developer tool
   --out <path>       Keep the full records in a file, one JSON line per name,
                      written as each name finishes. For more than five names
                      it prints one line per name and not the summaries.
@@ -59,6 +80,46 @@ Options:
                      --out and --read, a larger number prints more of a list
   --json             Print the full records and no summary
   --help             Show this help
+
+Keys. Every key is optional and is read from an environment variable. The
+script never prints or records a value. With no key the script takes the
+keyless route and the summary says which route is left to you.
+  Domain price and live availability, first that is set and answers:
+    CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID   Cloudflare Registrar
+        (preferred). Asks Cloudflare's domain-check endpoint, up to 20
+        names a call. Whether it answers for names outside the
+        account is not stated in its guide, so the script reports whatever
+        it returns. It reports a suffix it does
+        not sell as extension_not_supported_via_api, and the script then
+        tries the next route
+    PORKBUN_API_KEY and PORKBUN_SECRET_API_KEY       Porkbun, the fallback.
+        Asks its bulk check, up to 25 names a call. A taken name may carry a
+        pointer to its aftermarket listing
+    With neither: Porkbun's public price list, which needs no key. It gives
+        the suffix's standard price and is marked "suffix list price, not a
+        quote for this name". Availability then comes from RDAP and the
+        registry's WHOIS only, and the exact price of a name is read by hand
+        from a registrar's search page
+  BRAVE_SEARCH_API_KEY    Adds the web section: the first ten results for the
+        bare name, the name beside the category words, and the name beside
+        the scam, fraud, lawsuit, and complaint words. Brave sells prepaid
+        credits that include a monthly free amount and asks for a card to
+        prevent abuse, so it is optional and off until a key is set. Without it, the searches are
+        yours to run with your own web search
+  EUIPO_CLIENT_ID and EUIPO_CLIENT_SECRET   Adds the euipo section: European
+        Union word marks with exactly the name. The EUIPO API needs a
+        registered application with a subscription to its trademark search
+        product. EUIPO_AUTH_URL, EUIPO_API_URL, and EUIPO_SCOPE override the
+        sign-in address, the search address, and the scope
+  COMPANIES_HOUSE_API_KEY Adds the companies section: the UK register's own
+        search, for the name without its ending
+  UNTESTED: the Cloudflare, Porkbun, Brave, EUIPO, and Companies House routes
+  follow each service's published documentation and have not been run against
+  a live account. EUIPO is the least certain, since its production addresses,
+  scope, and query syntax are unconfirmed. An
+  answer these routes do not give in the expected shape is reported as a
+  failed lookup, never as an empty result. GITHUB_TOKEN raises the code
+  section's GitHub limit.
 
 Reading the summary: each list of marks says how many it holds, live and
 dead, and how many are shown. A dead mark is written DEAD. A mark's goods
@@ -79,6 +140,14 @@ Reading the full records, per name:
   domains   records[]: status is "registered", "no record", "unknown", or
             "lookup failed", with creation date, registrar, and name servers.
             "no record" is a strong sign the name is free, not a checkout.
+            price: from Cloudflare or Porkbun live when a key is set
+            (kind "live": registrable, registration and renewal cost,
+            premium or tier), otherwise Porkbun's public list price for the
+            suffix (kind "suffix list price"). null when no route had the
+            suffix. priceTried lists each route that did not answer, with
+            why. A cheaper suffix, or a domain that holds the name as a
+            part of it, is a way round a taken one, and the price of each
+            is here to compare.
             "unknown" means no registry could be asked, and counts as failed.
             serves: what the address answers with, and parkingSigns, hints
             that it is parked or for sale. registeredTogether: suffixes
@@ -139,6 +208,22 @@ Reading the full records, per name:
             disputes its owner has been party to
   stores    apps[]: Apple App Store and Mac App Store apps whose title or
             seller carries the name. otherTopResults: what else came back
+  words     entries[]: for the name and the spellings given, in capitals and
+            lower case, whether Wiktionary has an entry, the languages it
+            lists, and the first senses. A dictionary reports a sense. It
+            does not say whether the name sounds like a rude word, which is
+            the agent's reading
+  web       queries[]: the first ten Brave results for each query, with
+            title, address, and snippet. Present only when the key is set.
+            A snippet is a lead, never evidence
+  euipo     exact: European Union word marks with exactly the name. Present
+            only when the keys are set. Near and sound-alike marks are not
+            searched
+  companies UK Companies House search results for the name. Present only
+            when the key is set. same marks a title equal to the name once
+            its ending is dropped
+  noKey     The keyed sections with no key set, and the variable names that
+            would set them
   code      Exact package on npm, PyPI, and crates.io, GitHub repositories by
             stars and by recent activity, and whether the GitHub account of
             that name is taken
@@ -147,10 +232,12 @@ Reading the full records, per name:
   forms     For each form, given or made by rule: the marks containing it
             (no near or leading lists) and the iPhone and iPad store only. A
             form that is an ordinary word returns that word's marks and apps
-  yours     Some of the lookups this script does not run, with exact queries
-            and addresses: the searches, with a template for the stem search, and
-            store and dictionary pages marked with when they apply.
-            Dictionary pages are listed for the name and the forms given, not
+  yours     Some of the lookups this script did not run, with exact queries
+            and addresses: the searches the web section did not run, with a
+            template for the stem search, store and slang pages marked with
+            when they apply, a registrar page for each address with no live
+            price, and the EU and UK registers when no key reached them.
+            Slang pages are listed for the name and the forms given, not
             for the respellings by rule. It is a start. Other markets,
             offices, languages, and fields are still to add
 
@@ -256,7 +343,7 @@ function parseArgs(argv) {
   if (!opts.specs.length) fail("give at least one name, or --file <path>.");
   if (!opts.tlds.length) fail("--tlds needs at least one suffix.");
   if (opts.read && !opts.out) fail("--read needs --out <path>, the file to read from.");
-  opts.sections = opts.only ?? [...DEFAULT_SECTIONS, ...(opts.code ? ["code"] : [])];
+  opts.sections = opts.only ?? [...DEFAULT_SECTIONS, ...(opts.code ? ["code"] : []), ...KEYED.filter(hasKeys)];
   return opts;
 }
 
@@ -274,7 +361,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Requests to one host go out one at a time with a gap, so a large set does
 // not get the service to refuse the whole run.
-const HOST_GAP = { "github.com": 1000, "tmsearch.uspto.gov": 1500, "itunes.apple.com": 3200, "web.archive.org": 1500, "api.github.com": process.env.GITHUB_TOKEN ? 2200 : 6500 };
+const HOST_GAP = { "github.com": 1000, "tmsearch.uspto.gov": 1500, "itunes.apple.com": 3200, "web.archive.org": 1500, "api.github.com": process.env.GITHUB_TOKEN ? 2200 : 6500, "api.search.brave.com": 1100, "api.company-information.service.gov.uk": 600, "api.cloudflare.com": 300, "api.porkbun.com": 600, "en.wiktionary.org": 300 };
 const hostQueue = new Map();
 function paced(host, task) {
   const gap = HOST_GAP[host] ?? 200;
@@ -446,6 +533,107 @@ async function whatItServes(record) {
   return serves;
 }
 
+// ---------- domain price ----------
+
+// The answer for each domain, from the first route that gives one: Cloudflare Registrar, then Porkbun,
+// both live and needing keys, then Porkbun's public list price for the suffix, which needs none.
+// A route that was tried and failed is kept under priceTried, so a missing price never reads as a free one.
+async function cloudflarePrices(domains) {
+  const out = new Map();
+  for (let i = 0; i < domains.length; i += 20) {
+    const response = await request(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env("CLOUDFLARE_ACCOUNT_ID"))}/registrar/domain-check`, {
+      method: "POST",
+      body: JSON.stringify({ domains: domains.slice(i, i + 20) }),
+      headers: { "content-type": "application/json", authorization: `Bearer ${env("CLOUDFLARE_API_TOKEN")}` },
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Cloudflare Registrar answered ${response.status}`);
+    const data = await response.json();
+    if (data.success === false || !Array.isArray(data.result?.domains)) throw new Error("Cloudflare Registrar answered in an unexpected shape");
+    for (const d of data.result.domains) {
+      const pricing = d.pricing ?? {};
+      out.set(String(d.name).toLowerCase(), { source: "Cloudflare Registrar, live check", kind: "live", registrable: d.registrable === true, tier: d.tier ?? null, reason: d.reason ?? null, currency: pricing.currency ?? null, registration: pricing.registration_cost ?? null, renewal: pricing.renewal_cost ?? null });
+    }
+  }
+  return out;
+}
+
+async function porkbunPrices(domains) {
+  const out = new Map();
+  for (let i = 0; i < domains.length; i += 25) {
+    const response = await request("https://api.porkbun.com/api/json/v3/domain/checkDomain", {
+      method: "POST",
+      body: JSON.stringify({ domains: domains.slice(i, i + 25) }),
+      headers: { "content-type": "application/json", "x-api-key": env("PORKBUN_API_KEY"), "x-secret-api-key": env("PORKBUN_SECRET_API_KEY") },
+      retries: 1,
+    });
+    if (!response.ok) throw new Error(`Porkbun answered ${response.status}`);
+    const data = await response.json();
+    if (data.status !== "SUCCESS" || typeof data.domains !== "object") throw new Error("Porkbun answered in an unexpected shape");
+    for (const [domain, d] of Object.entries(data.domains)) {
+      out.set(domain.toLowerCase(), { source: "Porkbun, live check", kind: "live", registrable: d.avail === "yes", premium: d.premium === "yes", currency: "USD", registration: d.price ?? null, regularRegistration: d.regularPrice ?? null, firstYearPromo: d.firstYearPromo === "yes", renewal: d.additional?.renewal?.price ?? null, aftermarketSearch: d.aftermarketSearch ?? null });
+    }
+    // These names got no answer, which is neither available nor taken.
+    for (const domain of data.unresolved ?? []) out.set(String(domain).toLowerCase(), { error: "the registry did not answer in time" });
+  }
+  return out;
+}
+
+let listPrices;
+function porkbunListPrices() {
+  listPrices ??= request("https://api.porkbun.com/api/json/v3/pricing/get", { method: "POST", retries: 1 }).then(async (response) => {
+    if (!response.ok) throw new Error(`Porkbun price list answered ${response.status}`);
+    const data = await response.json();
+    if (data.status !== "SUCCESS" || typeof data.pricing !== "object") throw new Error("Porkbun price list answered in an unexpected shape");
+    return data.pricing;
+  });
+  listPrices.catch(() => {
+    listPrices = undefined;
+  });
+  return listPrices;
+}
+
+async function priceDomains(records) {
+  const wanted = records.filter((r) => r.domain && r.status !== "lookup failed" && r.status !== "unknown");
+  for (const r of wanted) r.priceTried = [];
+  const pending = () => wanted.filter((r) => !r.price);
+  const route = async (group, label, fetchAll) => {
+    const todo = pending();
+    if (!todo.length || !hasKeys(group)) return;
+    try {
+      const answers = await fetchAll(todo.map((r) => r.domain));
+      for (const r of todo) {
+        const a = answers.get(r.domain.toLowerCase());
+        if (!a) r.priceTried.push(`${label}: no answer for this name`);
+        else if (a.error) r.priceTried.push(`${label}: ${a.error}`);
+        else if (a.reason && /extension_not_supported/.test(a.reason)) r.priceTried.push(`${label}: does not sell this suffix (${a.reason})`);
+        else r.price = a;
+      }
+    } catch (error) {
+      for (const r of todo) r.priceTried.push(`${label}: ${error.message}`);
+    }
+  };
+  await route("cloudflare", "Cloudflare Registrar", cloudflarePrices);
+  await route("porkbun", "Porkbun", porkbunPrices);
+  const left = pending().filter((r) => r.status !== "registered");
+  if (left.length) {
+    try {
+      const list = await porkbunListPrices();
+      for (const r of left) {
+        const entry = list[r.domain.split(".").slice(1).join(".")] ?? list[r.domain.split(".").pop()];
+        if (entry) r.price = { source: "Porkbun public price list", kind: "suffix list price", currency: "USD", registration: entry.registration ?? null, renewal: entry.renewal ?? null, note: "The standard price of this suffix, not a quote for this name. A premium name costs more, and a taken name costs whatever its holder asks. Read a registrar's own search page for this name" };
+        else r.priceTried.push("Porkbun public price list: does not sell this suffix");
+      }
+    } catch (error) {
+      for (const r of left) r.priceTried.push(`Porkbun public price list: ${error.message}`);
+    }
+  }
+  for (const r of wanted) {
+    r.price ??= null;
+    if (!r.priceTried.length) delete r.priceTried;
+  }
+}
+
 async function domainsSection(name, tlds) {
   if (!slug(name)) return { ran: false, error: "the name has no letters or digits to form a domain from", records: [], registeredTogether: [] };
   const records = [];
@@ -466,6 +654,7 @@ async function domainsSection(name, tlds) {
     const group = dated.filter((b) => Math.abs(Date.parse(a.created) - Date.parse(b.created)) <= 60000).map((b) => b.domain);
     if (group.length > 1 && !together.some((g) => g.join() === group.join())) together.push(group);
   }
+  await priceDomains(records);
   const failed = records.filter((r) => r.status === "lookup failed" || r.status === "unknown");
   return {
     ran: failed.length === 0,
@@ -955,26 +1144,137 @@ async function codeSection(name) {
   return out;
 }
 
+// ---------- words ----------
+
+const plain = (html) => (html ?? "").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+// The entries Wiktionary holds for the name and the spellings the person gave, in every language it covers.
+// It reports what the dictionary says. Whether a sense is rude, and whether the name sounds like a rude word, is the agent's reading.
+async function wordsSection(name, given) {
+  const terms = [...new Set([name, ...given].flatMap((t) => [t.trim(), t.trim().toLowerCase()]))].filter(Boolean);
+  const entries = [];
+  const errors = [];
+  for (const term of terms) {
+    try {
+      const url = `https://en.wiktionary.org/wiki/${encodeURIComponent(term.replace(/ /g, "_"))}`;
+      const response = await request(`https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(term.replace(/ /g, "_"))}`, { retries: 2, headers: { accept: "application/json" } });
+      if (response.status === 404) {
+        entries.push({ term, entry: false, url });
+        continue;
+      }
+      if (!response.ok) throw new Error(`Wiktionary answered ${response.status}`);
+      const data = await response.json();
+      const senses = [];
+      for (const list of Object.values(data)) {
+        for (const part of list) {
+          for (const d of part.definitions ?? []) {
+            const text = plain(d.definition);
+            if (text) senses.push({ language: part.language, partOfSpeech: part.partOfSpeech, sense: clip(text, 160) });
+          }
+        }
+      }
+      entries.push({ term, entry: true, url, languages: [...new Set(senses.map((s) => s.language))], senses: senses.slice(0, 12), sensesHeld: senses.length });
+    } catch (error) {
+      errors.push(`${term}: ${error.message}`);
+      entries.push({ term, error: error.message });
+    }
+  }
+  return { ran: errors.length === 0, source: "Wiktionary", ...(errors.length ? { error: errors.join(", ") } : {}), entries };
+}
+
+// ---------- web search, when BRAVE_SEARCH_API_KEY is set ----------
+
+async function webSection(name, category, tlds) {
+  const quote = (t) => `"${t}"`;
+  const cat = category.length ? `(${category.map((w) => (w.includes(" ") ? quote(w) : w)).join(" OR ")})` : null;
+  const domains = tlds.map((tld) => domainFor(name, tld)).filter(Boolean);
+  const queries = [quote(name), ...(cat ? [`${quote(name)} ${cat}`] : []), `(${[name, ...domains].map(quote).join(" OR ")}) (scam OR fraud OR lawsuit OR complaint)`];
+  const results = [];
+  const errors = [];
+  for (const query of queries) {
+    try {
+      const response = await request(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10`, { headers: { accept: "application/json", "x-subscription-token": env("BRAVE_SEARCH_API_KEY") }, retries: 1 });
+      if (!response.ok) throw new Error(`Brave Search answered ${response.status}`);
+      const data = await response.json();
+      if (!Array.isArray(data.web?.results) && data.type !== "search") throw new Error("Brave Search answered in an unexpected shape");
+      results.push({ query, results: (data.web?.results ?? []).map((r) => ({ title: plain(r.title), url: r.url, description: clip(plain(r.description), 200), age: r.age ?? r.page_age ?? null })) });
+    } catch (error) {
+      errors.push(`${query}: ${error.message}`);
+      results.push({ query, error: error.message });
+    }
+  }
+  return { ran: errors.length === 0, source: "Brave Search", category, ...(errors.length ? { error: errors.join(", ") } : {}), queries: results };
+}
+
+// ---------- UK Companies House, when COMPANIES_HOUSE_API_KEY is set ----------
+
+async function companiesSection(name) {
+  try {
+    const auth = Buffer.from(`${env("COMPANIES_HOUSE_API_KEY")}:`).toString("base64");
+    const response = await request(`https://api.company-information.service.gov.uk/search/companies?q=${encodeURIComponent(name)}&items_per_page=20`, { headers: { authorization: `Basic ${auth}`, accept: "application/json" }, retries: 1 });
+    if (!response.ok) throw new Error(`Companies House answered ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data.items)) throw new Error("Companies House answered in an unexpected shape");
+    const key = slug(name);
+    const items = data.items.map((c) => ({ title: c.title, number: c.company_number, status: c.company_status ?? null, created: c.date_of_creation ?? null, ceased: c.date_of_cessation ?? null, address: c.address_snippet ?? null, same: slug((c.title ?? "").replace(/\b(limited|ltd|plc|llp)\b\.?/gi, "")) === key }));
+    return { ran: true, source: "UK Companies House search", total: data.total_results ?? items.length, listed: items.length, companies: items };
+  } catch (error) {
+    return { ran: false, source: "UK Companies House search", error: error.message };
+  }
+}
+
+// ---------- EU trademarks, when EUIPO_CLIENT_ID and EUIPO_CLIENT_SECRET are set ----------
+// The EUIPO API needs a registered application and a subscription to its trademark search product, and its
+// production endpoints, scope, and query syntax were not confirmed against a live account. Every address can be
+// overridden by an environment variable, and an unexpected answer is a failed lookup, never an empty result.
+
+async function euipoSection(name) {
+  const authUrl = env("EUIPO_AUTH_URL") ?? "https://auth.euipo.europa.eu/oidc/accessToken";
+  const apiUrl = env("EUIPO_API_URL") ?? "https://api.euipo.europa.eu/trademark-search/trademarks";
+  const scope = env("EUIPO_SCOPE") ?? "trademark-search.trademarks.read";
+  try {
+    const form = new URLSearchParams({ grant_type: "client_credentials", client_id: env("EUIPO_CLIENT_ID"), client_secret: env("EUIPO_CLIENT_SECRET"), scope });
+    const token = await request(authUrl, { method: "POST", body: form.toString(), headers: { "content-type": "application/x-www-form-urlencoded" }, retries: 1 });
+    if (!token.ok) throw new Error(`EUIPO sign-in answered ${token.status}`);
+    const accessToken = (await token.json()).access_token;
+    if (!accessToken) throw new Error("EUIPO sign-in gave no access token");
+    const headers = { authorization: `Bearer ${accessToken}`, "x-ibm-client-id": env("EUIPO_CLIENT_ID"), accept: "application/json" };
+    const read = async (query) => {
+      const response = await request(`${apiUrl}?query=${encodeURIComponent(query)}&size=100&page=0`, { headers, retries: 1 });
+      if (!response.ok) throw new Error(`EUIPO search answered ${response.status}`);
+      const data = await response.json();
+      if (!Array.isArray(data.trademarks)) throw new Error("EUIPO search answered in an unexpected shape");
+      return { total: data.totalElements ?? null, marks: data.trademarks };
+    };
+    const exact = await read(`wordMarkSpecification.verbalElement==${name.replace(/[^\p{L}\p{N} ]/gu, "")}`);
+    const row = (m) => ({ mark: m.wordMarkSpecification?.verbalElement ?? null, number: m.applicationNumber ?? null, status: m.status ?? null, classes: m.niceClasses ?? null, applied: m.applicationDate ?? null, registered: m.registrationDate ?? null, expires: m.expiryDate ?? null, applicant: (m.applicants ?? []).map((a) => a.name).filter(Boolean).join(" / ") || null, link: m.applicationNumber ? `https://euipo.europa.eu/eSearch/#details/trademarks/${m.applicationNumber}` : null });
+    return { ran: true, source: "EUIPO trademark search API", exact: { total: exact.total, listed: exact.marks.length, searchedAll: exact.total != null && exact.marks.length >= exact.total, marks: exact.marks.map(row) }, note: "Exact word-mark matches only. Near, sound, and built-on marks are still the eSearch plus lookup." };
+  } catch (error) {
+    return { ran: false, source: "EUIPO trademark search API", error: error.message };
+  }
+}
+
 // ---------- the lookups left to the agent ----------
 
 function yours(spec, opts) {
-  const { name, forms } = spec;
+  const { name, forms, webRan, unpriced, euipoRan, companiesRan } = spec;
   const given = forms.filter((form) => !spec.byRule.includes(form));
   const quote = (t) => `"${t}"`;
   const category = opts.category.length ? `(${opts.category.map((w) => (w.includes(" ") ? quote(w) : w)).join(" OR ")})` : "(<category words joined by OR>)";
   const domains = opts.tlds.map((tld) => domainFor(name, tld) ?? `${slug(name)}.${tld}`);
-  const list = [
-    { step: "search", query: quote(name) },
-    { step: "search", query: `${quote(name)} ${category}` },
-    ...(forms.length ? [{ step: "search", query: `(${forms.map(quote).join(" OR ")}) ${category}` }] : []),
-    { step: "search", when: "when buyers read English. Otherwise write the four adverse words in their language", query: `(${[name, ...domains].map(quote).join(" OR ")}) (scam OR fraud OR lawsuit OR complaint)` },
-    { step: "search", query: `"<the name's stem: its leading word or root>" ${category}` },
-  ];
+  const list = [];
+  // The three searches below ran in the web section when BRAVE_SEARCH_API_KEY was set and every query answered.
+  if (!webRan) list.push({ step: "search", query: quote(name) });
+  if (!webRan || !opts.category.length) list.push({ step: "search", query: `${quote(name)} ${category}` });
+  if (forms.length) list.push({ step: "search", query: `(${forms.map(quote).join(" OR ")}) ${category}` });
+  if (!webRan) list.push({ step: "search", when: "when buyers read English. Otherwise write the four adverse words in their language", query: `(${[name, ...domains].map(quote).join(" OR ")}) (scam OR fraud OR lawsuit OR complaint)` });
+  list.push({ step: "search", query: `"<the name's stem: its leading word or root>" ${category}` });
   for (const term of [name, ...forms]) list.push({ step: "marketplaces", when: "when the product is an app", url: `https://play.google.com/store/search?q=${encodeURIComponent(term)}&c=apps` });
-  for (const term of [name, ...given]) {
-    for (const spelling of new Set([term.toLowerCase(), term])) list.push({ step: "languages", when: "always. The page lists the word in every language that has it", url: `https://en.wiktionary.org/wiki/${encodeURIComponent(spelling)}` });
-  }
-  for (const term of [name, ...given]) list.push({ step: "languages", when: "when buyers read English", url: `https://www.urbandictionary.com/define.php?term=${encodeURIComponent(term)}` });
+  for (const term of [name, ...given]) list.push({ step: "languages", when: "slang, when buyers read English. The dictionary entries themselves are in the words section", url: `https://www.urbandictionary.com/define.php?term=${encodeURIComponent(term)}` });
+  for (const domain of unpriced ?? []) list.push({ step: "price", when: "read by hand: no live price came back for this address, so a registrar's own search page is the answer", url: `https://porkbun.com/checkout/search?q=${encodeURIComponent(domain)}` });
+  list.push({ step: "marks", when: "when the goal names the United Kingdom. No key or API exists for it, so type the name into the office's search", url: "https://trademarks.ipo.gov.uk/ipo-tmtext" });
+  if (!euipoRan) list.push({ step: "marks", when: "when the goal names the European Union. Type the name into the office's search", url: "https://euipo.europa.eu/eSearch/" });
+  if (!companiesRan) list.push({ step: "register", when: "when a company will be formed in the United Kingdom", url: `https://find-and-update.company-information.service.gov.uk/search?q=${encodeURIComponent(name)}` });
   return list;
 }
 
@@ -1061,10 +1361,34 @@ async function lookupName(spec, opts, base) {
       looked = true;
     }
   };
-  await Promise.all([addresses(), marks(), stores(), code()]);
+  const words = async () => {
+    if (missing("words") || (want("words") && result.words?.entries && !spec.forms.every((f) => result.words.entries.some((e) => e.term.toLowerCase() === f.toLowerCase())))) {
+      result.words = await wordsSection(name, spec.forms);
+      looked = true;
+    }
+  };
+  // A keyed section asked for by name without its key is a failed lookup. When the key is absent and
+  // nothing was asked for by name, the route to use instead is recorded under noKey.
+  const keyed = async () => {
+    const run = {
+      web: () => webSection(name, opts.category, tlds),
+      euipo: () => euipoSection(name),
+      companies: () => companiesSection(name),
+    };
+    for (const section of KEYED) {
+      const newCategory = section === "web" && result.web?.ran && opts.category.length && JSON.stringify(result.web.category ?? []) !== JSON.stringify(opts.category);
+      if (!want(section) || !(missing(section) || newCategory)) continue;
+      result[section] = hasKeys(section) ? await run[section]() : { ran: false, error: `no key: set ${missingKeys(section).join(" and ")}` };
+      looked = true;
+    }
+  };
+  await Promise.all([addresses(), marks(), stores(), code(), words(), keyed()]);
   if (entries.size) result.forms = [...entries.values()];
 
+  // The keyed lookups with no key set, and the route to take instead. Never a value, only variable names.
+  result.noKey = opts.only ? [] : KEYED.filter((section) => !hasKeys(section)).map((section) => ({ section, set: missingKeys(section) }));
   result.settings = settings;
+  for (const section of KEYED) if (!want(section) && result[section]?.ran === false && /^no key/.test(result[section].error ?? "")) delete result[section];
   result.failed = SECTIONS.filter((section) => result[section]?.ran === false);
   for (const entry of result.forms ?? []) {
     for (const section of ["marks", "stores"]) {
@@ -1079,7 +1403,8 @@ async function lookupName(spec, opts, base) {
     }
   }
   if (looked || !result.lookedUp) result.lookedUp = new Date().toISOString();
-  result.yours = yours({ name, forms: (result.forms ?? []).map((entry) => entry.form), byRule: result.ruleForms.filter((form) => !given.has(slug(form))) }, { ...opts, tlds });
+  const unpriced = (result.domains?.records ?? []).filter((r) => r.status === "no record").filter((r) => r.price?.kind !== "live").map((r) => r.domain);
+  result.yours = yours({ name, forms: (result.forms ?? []).map((entry) => entry.form), byRule: result.ruleForms.filter((form) => !given.has(slug(form))), webRan: result.web?.ran === true, euipoRan: result.euipo?.ran === true, companiesRan: result.companies?.ran === true, unpriced }, { ...opts, tlds });
   return { result, looked };
 }
 
@@ -1205,6 +1530,13 @@ function summarize(r, opts) {
       const serves = d.serves ? ` | serves ${d.serves.error ? `nothing (${d.serves.error})` : `${d.serves.httpStatus} "${clip(d.serves.title ?? "no title", 60)}" at ${d.serves.finalUrl}`}${d.serves.parkingSigns?.length ? ` | parking signs: ${d.serves.parkingSigns.join(", ")}` : ""}` : "";
       const facts = d.status === "registered" ? ` since ${day(d.created) ?? "an unknown date"} through ${d.registrar ?? "an unlisted registrar"}` : "";
       lines.push(`    ${d.domain} | ${d.status}${facts} | ${d.source ?? "no source"}${serves}${d.error ? ` | ${d.error}` : ""}${d.note ? ` | ${d.note}` : ""}`);
+      if (d.price) {
+        const q = d.price;
+        const money = (v) => (v == null ? "no figure" : `${v}${q.currency ? ` ${q.currency}` : ""}`);
+        lines.push(`      price | ${q.source} | ${q.kind === "live" ? `${q.registrable ? "registrable" : "not registrable"}${q.reason ? ` (${q.reason})` : ""}${q.premium || q.tier === "premium" ? ", premium" : ""}` : "suffix list price, not a quote for this name"} | registration ${money(q.registration)} | renewal ${money(q.renewal)}${q.aftermarketSearch ? " | may be for sale on the aftermarket" : ""}`);
+      } else if (d.status === "registered") lines.push("      price | taken, so its holder sets the price. Read the page it serves for a sale link, or ask");
+      else if (d.status !== "lookup failed" && d.status !== "unknown") lines.push("      price | none read by script, so the price is yours to read by hand");
+      for (const t of d.priceTried ?? []) lines.push(`      price route that did not answer | ${t}`);
     }
     for (const group of r.domains.registeredTogether ?? []) lines.push(`    Registered within a minute of each other: ${group.join(", ")}`);
   }
@@ -1227,6 +1559,46 @@ function summarize(r, opts) {
     lines.push("  Stores");
     storeLines(lines, r.stores);
   }
+  if (r.words) {
+    lines.push("  Words, Wiktionary entries (the agent reads them for rude or embarrassing senses)");
+    if (r.words.ran === false && !r.words.entries) lines.push(`    not run: ${r.words.error}`);
+    for (const e of r.words.entries ?? []) {
+      if (e.error) lines.push(`    "${e.term}" | not run: ${e.error}`);
+      else if (!e.entry) lines.push(`    "${e.term}" | no entry`);
+      else {
+        lines.push(`    "${e.term}" | entry in ${e.languages.join(", ")} | ${e.sensesHeld} senses${e.sensesHeld > e.senses.length ? `, ${e.senses.length} shown` : ""} | ${e.url}`);
+        for (const sense of e.senses.slice(0, opts.top)) lines.push(`      ${sense.language} ${sense.partOfSpeech}: ${sense.sense}`);
+      }
+    }
+  }
+  if (r.web) {
+    lines.push("  Web, Brave Search, first page of each query");
+    if (r.web.ran === false && !r.web.queries) lines.push(`    not run: ${r.web.error}`);
+    for (const q of r.web.queries ?? []) {
+      if (q.error) lines.push(`    ${q.query} | not run: ${q.error}`);
+      else {
+        lines.push(`    ${q.query} | ${q.results.length} results`);
+        for (const hit of q.results) lines.push(`      ${clip(hit.title, 70)} | ${hit.url} | ${clip(hit.description, 110)}${hit.age ? ` | ${hit.age}` : ""}`);
+      }
+    }
+  }
+  if (r.euipo) {
+    lines.push("  Marks, EUIPO word marks, exact name only (route untested, see --help)");
+    if (r.euipo.ran === false) lines.push(`    not run: ${r.euipo.error}`);
+    else {
+      lines.push(`    ${r.euipo.exact.total ?? "an unknown number of"} marks, ${r.euipo.exact.listed} read${r.euipo.exact.searchedAll ? "" : ". PARTIAL"}${r.euipo.exact.listed === 0 ? ". Untested route: zero here is not a clear result, so check the office's search too" : ""}`);
+      for (const m of r.euipo.exact.marks.slice(0, opts.top)) lines.push(`      ${[m.mark, m.status, m.classes ? `classes ${[].concat(m.classes).join(", ")}` : null, m.applicant, m.applied ? `applied ${day(m.applied)}` : null, m.registered ? `registered ${day(m.registered)}` : null, m.link].filter(Boolean).join(" | ")}`);
+    }
+  }
+  if (r.companies) {
+    lines.push("  Companies, UK Companies House search");
+    if (r.companies.ran === false) lines.push(`    not run: ${r.companies.error}`);
+    else {
+      lines.push(`    ${r.companies.total} companies match, ${r.companies.listed} shown`);
+      for (const c of r.companies.companies.slice(0, opts.top)) lines.push(`      ${c.title} | ${c.status ?? "no status"} | ${c.number} | created ${day(c.created) ?? "unknown"}${c.ceased ? ` | ceased ${day(c.ceased)}` : ""}${c.same ? " | same name without its ending" : ""}`);
+    }
+  }
+  for (const k of r.noKey ?? []) lines.push(`  No key for ${k.section === "web" ? "web search" : k.section === "euipo" ? "EU trademarks" : "UK companies"} (set ${k.set.join(" and ")}), so that route is yours: see Yours to run`);
   if (r.code) {
     lines.push("  Code");
     if (r.code.ran === false) lines.push(`    not run: ${r.code.error}`);
@@ -1301,6 +1673,7 @@ async function main() {
     const out = [`Records, not verdicts. Open a mark at https://tsdr.uspto.gov/statusview/sn<serial>. ${kept}`, ""];
     if (opts.out && !opts.read && results.length > 5) {
       for (const r of results) out.push(`${r.name} | ${r.failed.length || r.notRun.length ? `INCOMPLETE: ${[...r.failed.map((f) => `failed ${f}`), ...r.notRun.map((n) => `not run ${n}`)].join(", ")}` : "complete"}`);
+      for (const k of results[0]?.noKey ?? []) out.push(`No key for ${k.section === "web" ? "web search" : k.section === "euipo" ? "EU trademarks" : "UK companies"} (set ${k.set.join(" and ")}), so that route is yours. Print a name's summary for the routes left to you.`);
       out.push("", `${results.length} names this run, ${reused} already complete, ${rows.size} in the file. Print a name's summary with: <name> --out ${opts.out} --read`);
     } else {
       out.push(results.map((r) => summarize(r, opts)).join("\n\n"));
